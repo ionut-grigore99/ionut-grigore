@@ -1,0 +1,1 @@
+export { studies } from './portfolioContent';
