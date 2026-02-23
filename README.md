@@ -1,4 +1,4 @@
-# Johnut Portfolio
+# Ionut Portfolio
 
 Portfolio website built with **React + TypeScript + Vite + MUI + Tailwind**.
 

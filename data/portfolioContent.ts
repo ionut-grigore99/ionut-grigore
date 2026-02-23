@@ -11,13 +11,13 @@ const linkedInPublications =
   "https://www.linkedin.com/in/ionut-grigore-711000203/details/publications/";
 
 export const profile: Profile = {
-  name: "Ionut Grigore",
+  name: "Ionuț Grigore",
   role: "AI Engineer | Teaching Assistant | PhD Student",
-  institution: "Polytechnic University of Timisoara",
+  institution: "Polytechnic University of Timișoara",
   headline:
-    "Computer vision researcher building practical AI for digital dentistry and medical imaging.",
+    "Computer vision researcher building practical AI.",
   about:
-    '"I am still learning!" - Inspired by Michelangelo\'s words, I focus on deep learning research for computer vision and on deploying production AI systems. My current work spans digital dentistry, medical imaging, and uncertainty-aware depth estimation.',
+    '"I am still learning!" - Inspired by Michelangelo\'s words, I focus on deep learning research for computer vision and on deploying production AI systems.',
 };
 
 export const experiences: ExperienceItem[] = [
@@ -27,18 +27,18 @@ export const experiences: ExperienceItem[] = [
     period: "Jul 2025 - Present",
     bullets: [
       "Designing and deploying machine learning models for digital dentistry workflows.",
-      "Working on 2D teeth segmentation, 2D-3D alignment between facial images and intraoral scans, and monocular camera parameter estimation.",
+      "Working on 2D teeth segmentation, 2D-3D alignment between facial images and intraoral scans, and monocular camera parameter estimation (with a particular focus on estimating the camera's focal length).",
       "Researching diffusion-based inpainting and image enhancement methods, including automatic white-balance correction for real user photos.",
     ],
   },
   {
     title: "Teaching Assistant",
-    organization: "Polytechnic University of Timisoara",
+    organization: "Polytechnic University of Timișoara",
     period: "Feb 2022 - Present",
     bullets: [
       "Teaching AI Foundations for 3rd-year students: linear models, trees, clustering, CNNs, RNNs, attention, and Transformers.",
       "Teaching Computer Assisted Mathematics Laboratory for 1st-year students using MATLAB.",
-      "Mentoring students on practical machine learning projects and fundamentals.",
+      "Mentoring students on practical machine learning projects and fundamentals, and coordinating bachelor thesis projects.",
     ],
   },
   {
@@ -47,8 +47,7 @@ export const experiences: ExperienceItem[] = [
     period: "Apr 2024 - Jul 2025",
     bullets: [
       "Contributed to the ProstateAI project: fully automated AI workflow for prostate MRI examination.",
-      "Developed segmentation and detection pipelines for prostate gland and lesion analysis based on nnU-Net.",
-      "Built a T2-weighted MRI scan quality assessment model to predict volume-level quality scores.",
+      "Improved the false-positive reduction model within ProstateAI, enhancing lesion-level specificity and overall system reliability.",
     ],
   },
   {
@@ -63,7 +62,7 @@ export const experiences: ExperienceItem[] = [
   },
   {
     title: "Junior Software Engineer",
-    organization: "Elektrobit (Timisoara, Romania)",
+    organization: "Elektrobit (Timișoara, Romania)",
     period: "Feb 2022 - Oct 2022",
     bullets: [
       "Worked on EB Corbos Studio, an Eclipse-based IDE for Adaptive AUTOSAR workflows.",
@@ -73,7 +72,7 @@ export const experiences: ExperienceItem[] = [
   },
   {
     title: "Mathematics and Informatics Substitute Teacher",
-    organization: "Wendy School Timisoara",
+    organization: "Wendy School Timișoara",
     period: "Oct 2021 - Dec 2021",
     bullets: [
       "Taught mathematics and informatics classes as substitute teacher.",
@@ -82,7 +81,7 @@ export const experiences: ExperienceItem[] = [
   },
   {
     title: "Intern",
-    organization: "ATOSS Software AG (Timisoara, Romania)",
+    organization: "ATOSS Software AG (Timișoara, Romania)",
     period: "Jun 2021 - Aug 2021",
     bullets: [
       "Developed a full-stack virtual library application during internship training.",
@@ -95,7 +94,7 @@ export const experiences: ExperienceItem[] = [
 export const studies: StudyItem[] = [
   {
     degree: "PhD in Deep Learning",
-    school: "Polytechnic University of Timisoara",
+    school: "Polytechnic University of Timișoara",
     years: "2024 - 2028",
     details:
       "Researching uncertainty estimation for self-supervised depth estimation using Bayesian deep learning in the national HRIA (Romanian Hub for Artificial Intelligence) project.",
@@ -103,7 +102,7 @@ export const studies: StudyItem[] = [
   },
   {
     degree: "Master of Engineering (Machine Learning)",
-    school: "Politehnica University of Timisoara",
+    school: "Politehnica University of Timișoara",
     years: "2022 - 2024",
     details:
       "Dissertation thesis: MambaDepth, integrating state-space modeling ideas for self-supervised monocular depth estimation.",
@@ -111,7 +110,7 @@ export const studies: StudyItem[] = [
   },
   {
     degree: "Bachelor's Degree in Computer Science",
-    school: "Politehnica University of Timisoara",
+    school: "Politehnica University of Timișoara",
     years: "2018 - 2022",
     details:
       "Bachelor thesis: Self-Supervised Monocular Depth Estimation using ManyDepth, with strong focus on deep learning and computer vision fundamentals.",
@@ -119,7 +118,7 @@ export const studies: StudyItem[] = [
   },
   {
     degree: "High School",
-    school: '"Grigore Moisil" High School, Timisoara',
+    school: '"Grigore Moisil" High School, Timișoara',
     years: "2014 - 2018",
     details:
       "Mathematics and informatics profile with strong foundations in mathematics, science, and digital competencies.",
@@ -147,17 +146,10 @@ export const publications: PublicationItem[] = [
   {
     filter: "problems",
     venue: "-",
-    title: "Probleme pentru liceu, clasa a IX-a",
-    authors: "I. Grigore",
-    link: "https://drive.google.com/file/d/1CH9v4tgsLu0hcAEYRMMHWFgxmo4sCdTK/view?pli=1",
-  },
-  {
-    filter: "problems",
-    venue: "-",
     title:
       '2 problems published in "Gazeta Matematică din București", number 6-7-8/2015, problem 27085-page 367 and problem 27108-page 370',
     authors: "I. Grigore",
-    link: linkedInPublications,
+    link: "https://drive.google.com/file/d/1CH9v4tgsLu0hcAEYRMMHWFgxmo4sCdTK/view?pli=1",
   },
   {
     filter: "problems",
@@ -169,7 +161,7 @@ export const publications: PublicationItem[] = [
   },
   {
     filter: "problems",
-    venue: "Revista de Matematica din Timisoara",
+    venue: "Revista de Matematică din Timișoara",
     title: "Numerous problems published",
     authors: "I. Grigore",
     link: "https://drive.google.com/file/d/1izcG4XTveBS6MxGRtNO0VMqhNwQ1vb9-/view",
@@ -178,7 +170,7 @@ export const publications: PublicationItem[] = [
     filter: "problems",
     venue: "Editura Gil",
     title:
-      "Probleme de combinatorica. Evaluare si exemplu - problem 130, page 42",
+      "Probleme de combinatorică. Evaluare și exemplu - problem 130, page 42",
     authors:
       "Ioan Codreanu, Mircea Lascu, with problem contribution by I. Grigore",
     link: "https://drive.google.com/file/d/1xIcOxE3j9-b3lMp0OE9iXuhrUCwKl6Cz/view",
@@ -202,15 +194,15 @@ export const publications: PublicationItem[] = [
 ];
 
 export const contact: ContactInfo = {
-  email: "ionut.orlando@yahoo.com",
-  location: "Timisoara, Timis, Romania",
+  email: "ionut.grigore@cs.upt.ro",
+  location: "Timișoara, Timiș, Romania",
   intro:
-    "Open to research collaborations and applied AI roles in computer vision, medical imaging, and production ML systems.",
+    "Open to research collaborations and applied AI roles in computer vision and production ML systems.",
 };
 
 export const materials: MaterialSection[] = [
   {
-    section: "MAC labs",
+    section: "Matematici Asistate de Calculator (MAC) labs",
     items: [
       {
         title: "MAC Lab Notes - Week 1",
@@ -255,7 +247,7 @@ export const materials: MaterialSection[] = [
     ],
   },
   {
-    section: "BIA labs",
+    section: "Bazele Inteligenței Artificiale (BIA) labs",
     items: [
       {
         title: "BIA Lab Notes - Week 1",
