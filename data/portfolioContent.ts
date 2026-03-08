@@ -36,7 +36,8 @@ export const experiences: ExperienceItem[] = [
     organization: "Polytechnic University of Timișoara",
     period: "Feb 2022 - Present",
     bullets: [
-      "Teaching AI Foundations for 3rd-year students: linear models, trees, clustering, CNNs, RNNs, attention, and Transformers.",
+      "Teaching AI Foundations for 3rd-year students: linear models, decision trees, dimensionality reduction, clustering, CNNs, RNNs, attention, and Transformers.",
+      "Teaching modern generative AI for 3rd-year students: attention mechanisms, Transformers, Vision Transformers (ViT), image captioning, diffusion models, CLIP, latent diffusion, Stable Diffusion, VQGAN, and DALL-E-style text-to-image generation.",
       "Teaching Computer Assisted Mathematics Laboratory for 1st-year students using MATLAB.",
       "Mentoring students on practical machine learning projects and fundamentals, and coordinating bachelor thesis projects.",
     ],
@@ -97,7 +98,7 @@ export const studies: StudyItem[] = [
     school: "Polytechnic University of Timișoara",
     years: "2024 - 2028",
     details:
-      "Researching uncertainty estimation for self-supervised depth estimation using Bayesian deep learning in the national HRIA (Romanian Hub for Artificial Intelligence) project.",
+      "Researching self-supervised depth estimation and 3D scene understanding, with focus on representation learning, uncertainty estimation, and state-space modeling. Involved in the national HRIA (Romanian Hub for Artificial Intelligence) research project.",
     note: "Current PhD student (research track)",
   },
   {
@@ -291,11 +292,56 @@ export const materials: MaterialSection[] = [
       },
       {
         title: "BIA Lab Notes - Week 11",
-        href: "https://docs.google.com/presentation/d/1NGLC_fejzGQzkZGbSi35cM-U_mKwzyd5/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://docs.google.com/presentation/d/1pPtYcLq7KorlYX8GQ3JcY8ANpQm1cR_U/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
       },
       {
-        title: "BIA Lab Notes - Week 12",
-        href: "https://docs.google.com/presentation/d/1pPtYcLq7KorlYX8GQ3JcY8ANpQm1cR_U/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        title: "BIA Lab Notes - Week 11 auxiliary",
+        href: "https://docs.google.com/presentation/d/1NGLC_fejzGQzkZGbSi35cM-U_mKwzyd5/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+      },
+    ],
+  },
+  {
+    section: "Grafică Asistată de Calculator (GAC) labs",
+    items: [
+      {
+        title: "GAC Lab Notes - Week 1",
+        href: "https://docs.google.com/presentation/d/1Jvs5nH5CNerur8zWNyyHjkK15LCzaq2P/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+      },
+      {
+        title: "GAC Lab Notes - Week 2",
+        href: "https://docs.google.com/presentation/d/1jGuqfGpKIzsn-3RByK4viNA5MtVfj51O/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+      },
+      {
+        title: "GAC Lab Notes - Week 3",
+        href: "https://docs.google.com/presentation/d/1tcTmPUirOpPcB55nS0T6z_eodVGoo5YI/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+      },
+      {
+        title: "GAC Lab Notes - Week 4",
+        href: "https://docs.google.com/presentation/d/16TRI14lVB6jDI5NGR-rjgKzV2vZDAB-t/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+      },
+      {
+        title: "GAC Lab Notes - Week 5",
+        href: "https://docs.google.com/presentation/d/1NwQeXXPGrF-i6HdeF7Wb7Fum5kHlwM4r/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+      },
+      {
+        title: "GAC Lab Notes - Week 6",
+        href: "https://docs.google.com/presentation/d/1fwvYJmwdNfEx2hAHOr1DsihOkxGU-VXA/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+      },
+      {
+        title: "GAC Lab Notes - Week 7",
+        href: "https://docs.google.com/presentation/d/1eSiJ0c_pXoFKnsUYDj9kicvXHgbi0iLm/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+      },
+      {
+        title: "GAC Lab Notes - Week 8",
+        href: "https://docs.google.com/presentation/d/1GUnFjI5seUQIhtaBWzWk0Jv3ZQ8MUxAT/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+      },
+      {
+        title: "GAC Lab Notes - Week 9",
+        href: "https://drive.google.com/open?id=1BfAfEVqwgQ2T9q5x16Zn-3I08lo6wOCW&usp=drive_copy",
+      },
+      {
+        title: "GAC Lab Notes - Week 10",
+        href: "https://drive.google.com/open?id=1vg_y3UMQrGKbVyulpUOtKTK-n0ltrq-Y&usp=drive_copy",
       },
     ],
   },

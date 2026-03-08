@@ -124,7 +124,7 @@ function HeaderNav({ name = 'Portfolio' }: HeaderNavProps): JSX.Element {
             underline="none"
             className="flex items-center whitespace-nowrap !px-4 !text-base !font-semibold !bg-blue-500/20 !text-blue-100 hover:!bg-blue-500/30"
           >
-            Materials
+            Teaching Materials
           </Link>
         </nav>
       </div>
@@ -195,7 +195,7 @@ function HeaderNav({ name = 'Portfolio' }: HeaderNavProps): JSX.Element {
             onClick={() => setIsSidebarOpen(false)}
             className="!mx-2 !mb-1 !rounded-lg !bg-blue-500/20 !text-blue-100 hover:!bg-blue-500/30"
           >
-            <ListItemText primary="Materials" />
+            <ListItemText primary="Teaching Materials" />
           </ListItemButton>
         </List>
       </Drawer>
