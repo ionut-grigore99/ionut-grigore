@@ -30,12 +30,20 @@ function Footer({ profile }: FooterProps): JSX.Element {
             Google Scholar
           </Link>
           <Link
-            href="https://arxiv.org/"
+            href="https://arxiv.org/search/?searchtype=author&query=Grigore%2C+I"
             target="_blank"
             rel="noopener noreferrer"
             underline="hover"
             className="!text-slate-200 hover:!text-white">
             arXiv
+          </Link>
+          <Link
+            href="https://cs.upt.ro/ro/people/profile/ionut-orlando-grigore-atimut"
+            target="_blank"
+            rel="noopener noreferrer"
+            underline="hover"
+            className="!text-slate-200 hover:!text-white">
+            University Profile
           </Link>
         </div>
       </div>
