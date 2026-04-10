@@ -207,43 +207,43 @@ export const materials: MaterialSection[] = [
     items: [
       {
         title: "MAC Lab Notes - Week 1",
-        href: "https://docs.google.com/presentation/d/1Jvs5nH5CNerur8zWNyyHjkK15LCzaq2P/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://drive.google.com/file/d/1EXdPOWYRAdLnbI39RyoIua45Yl8UTzJw/view?usp=drive_link",
       },
       {
         title: "MAC Lab Notes - Week 2",
-        href: "https://docs.google.com/presentation/d/1jGuqfGpKIzsn-3RByK4viNA5MtVfj51O/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://drive.google.com/file/d/1aZ1MgAoTJ31vv92hEV6ufWYfkYW6siYK/view?usp=drive_link",
       },
       {
         title: "MAC Lab Notes - Week 3",
-        href: "https://docs.google.com/presentation/d/1tcTmPUirOpPcB55nS0T6z_eodVGoo5YI/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://drive.google.com/file/d/1t_MnypJQLYNkG58hjf34beW5gLDFhjnU/view?usp=drive_link",
       },
       {
         title: "MAC Lab Notes - Week 4",
-        href: "https://docs.google.com/presentation/d/16TRI14lVB6jDI5NGR-rjgKzV2vZDAB-t/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://drive.google.com/file/d/1EQpN9pQjVMhn85NdQiISPmF7viAaw2cY/view?usp=drive_link",
       },
       {
         title: "MAC Lab Notes - Week 5",
-        href: "https://docs.google.com/presentation/d/1NwQeXXPGrF-i6HdeF7Wb7Fum5kHlwM4r/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://drive.google.com/file/d/1oGAaUoRynOAoWbz3dvXpx-TVBRIsqdCy/view?usp=drive_link",
       },
       {
         title: "MAC Lab Notes - Week 6",
-        href: "https://docs.google.com/presentation/d/1fwvYJmwdNfEx2hAHOr1DsihOkxGU-VXA/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://drive.google.com/file/d/1S7DUv5lgc1EgWbBUJ-ikiVsn8PgshlAB/view?usp=drive_link",
       },
       {
         title: "MAC Lab Notes - Week 7",
-        href: "https://docs.google.com/presentation/d/1eSiJ0c_pXoFKnsUYDj9kicvXHgbi0iLm/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://drive.google.com/file/d/178xMCEUYoSkiliS__P5z_yhhXsfxS6_E/view?usp=drive_link",
       },
       {
         title: "MAC Lab Notes - Week 8",
-        href: "https://docs.google.com/presentation/d/1GUnFjI5seUQIhtaBWzWk0Jv3ZQ8MUxAT/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://drive.google.com/file/d/1H73Z20X3CvU5atvHVMH6Mf7okkfnkqxM/view?usp=drive_link",
       },
       {
         title: "MAC Lab Notes - Week 9",
-        href: "https://drive.google.com/open?id=1BfAfEVqwgQ2T9q5x16Zn-3I08lo6wOCW&usp=drive_copy",
+        href: "https://drive.google.com/file/d/1Nz16flPamnTJRrUqTMmKjhOnMc3TdV9C/view?usp=drive_link",
       },
       {
         title: "MAC Lab Notes - Week 10",
-        href: "https://drive.google.com/open?id=1vg_y3UMQrGKbVyulpUOtKTK-n0ltrq-Y&usp=drive_copy",
+        href: "https://drive.google.com/file/d/19l2pVktoEUhoYCX3TZuGt3W7QLIqP30C/view?usp=drive_link",
       },
     ],
   },
@@ -252,51 +252,51 @@ export const materials: MaterialSection[] = [
     items: [
       {
         title: "BIA Lab Notes - Week 1",
-        href: "https://docs.google.com/presentation/d/1GG5X_iIbITdSMU4UTOQ5CfGvr9IWMj8O/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://drive.google.com/file/d/1bPC4ttP7eejb_3umkkKqaBVK_VRDX35-/view?usp=drive_link",
       },
       {
         title: "BIA Lab Notes - Week 2",
-        href: "https://docs.google.com/presentation/d/1iyBhho0m-Pb1-unUVtTa3rVVPhU2mry6/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://drive.google.com/file/d/1IDpvQf2z_G6Zg2KgIPQt_RgQVMJZAy4y/view?usp=drive_link",
       },
       {
         title: "BIA Lab Notes - Week 3",
-        href: "https://docs.google.com/presentation/d/1E56AJB2wXzgP1O6LGdELS4e9SFD-QPvw/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://drive.google.com/file/d/1TtaJbVkDu42tXUvzEMfDUq9mcAgF3Eed/view?usp=drive_link",
       },
       {
         title: "BIA Lab Notes - Week 4",
-        href: "https://docs.google.com/presentation/d/1bWkmBbv8pvnF-e7qoZZ47t4L9OVUwbc2/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://drive.google.com/file/d/1GXoHqfJ2BkrqddPpjiInSuKoAVBOdZQU/view?usp=drive_link",
       },
       {
         title: "BIA Lab Notes - Week 5",
-        href: "https://docs.google.com/presentation/d/1b-TfJHVaxIC-6v-PrmLXzuzuR-lB6YgF/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://drive.google.com/file/d/14S2q61k2HoJIC_h6v9cr6_eFL5mnrivM/view?usp=drive_link",
       },
       {
         title: "BIA Lab Notes - Week 6",
-        href: "https://drive.google.com/open?id=16kaxLmdX6jI4XLwtJ-EhEOshQFPPbL2T&usp=drive_copy",
+        href: "https://drive.google.com/file/d/1E6qbiKs1K0JuflMg3wUURxA8uNvM8LPd/view?usp=drive_link",
       },
       {
         title: "BIA Lab Notes - Week 7",
-        href: "https://docs.google.com/presentation/d/1-PzPJuUvFesU4jG3NuNExgjg1RpQDKtn/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://drive.google.com/file/d/1bRloW1owTtWlAoGjpr091md4xesWDbyU/view?usp=drive_link",
       },
       {
         title: "BIA Lab Notes - Week 8",
-        href: "https://docs.google.com/presentation/d/1L6mRRa0mj_fOdJYkroaz5MHgNbL6zYZM/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://drive.google.com/file/d/14knNHZsIYa5Clj9rbF12foIimEizPpz-/view?usp=drive_link",
       },
       {
         title: "BIA Lab Notes - Week 9",
-        href: "https://docs.google.com/presentation/d/10huA6EmWvwyu_YRNbCIup4gkrUAvzyCn/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://drive.google.com/file/d/1B7lep4HkA-qLYztzXEHN1Vqlk4AeJqBk/view?usp=drive_link",
       },
       {
         title: "BIA Lab Notes - Week 10",
-        href: "https://docs.google.com/presentation/d/10Vx8vtWBU--qmCEQ200OKOsYkFEEZ2jp/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://drive.google.com/file/d/1nmhCox34cuGi2hYcxsyrwyR3Xz4TBtuy/view?usp=drive_link",
       },
       {
         title: "BIA Lab Notes - Week 11",
-        href: "https://docs.google.com/presentation/d/1pPtYcLq7KorlYX8GQ3JcY8ANpQm1cR_U/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://drive.google.com/file/d/1ZkMBiGZx0pGClG_RqetgRxDK13o8xl-j/view?usp=drive_link",
       },
       {
         title: "BIA Lab Notes - Week 11 auxiliary",
-        href: "https://docs.google.com/presentation/d/1NGLC_fejzGQzkZGbSi35cM-U_mKwzyd5/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://drive.google.com/file/d/1PQviT5kvZGBcSPdQvqkaMOCT5FeMIAl7/view?usp=drive_link",
       },
     ],
   },
@@ -305,43 +305,43 @@ export const materials: MaterialSection[] = [
     items: [
       {
         title: "GAC Lab Notes - Week 1",
-        href: "https://docs.google.com/presentation/d/1Jvs5nH5CNerur8zWNyyHjkK15LCzaq2P/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://drive.google.com/file/d/1QAWHTvIWcHnHjeKL5p-haPF9mVpM2-rO/view?usp=drive_link",
       },
       {
         title: "GAC Lab Notes - Week 2",
-        href: "https://docs.google.com/presentation/d/1jGuqfGpKIzsn-3RByK4viNA5MtVfj51O/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://drive.google.com/file/d/1vmAsPBzASTmgJubJ7infSSXHGfYVvjPr/view?usp=drive_link",
       },
       {
         title: "GAC Lab Notes - Week 3",
-        href: "https://docs.google.com/presentation/d/1tcTmPUirOpPcB55nS0T6z_eodVGoo5YI/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://drive.google.com/file/d/1a4vntdEK0SavtpZPRgk0_wI-d2iEVgkP/view?usp=drive_link",
       },
       {
         title: "GAC Lab Notes - Week 4",
-        href: "https://docs.google.com/presentation/d/16TRI14lVB6jDI5NGR-rjgKzV2vZDAB-t/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://drive.google.com/file/d/1tdYATVvWIpBAM3OJFtXoCT--Lhti8PlO/view?usp=drive_link",
       },
       {
         title: "GAC Lab Notes - Week 5",
-        href: "https://docs.google.com/presentation/d/1NwQeXXPGrF-i6HdeF7Wb7Fum5kHlwM4r/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://drive.google.com/file/d/1T74pl-SnuuhXn9W-X30zf6TOlH-7-mnK/view?usp=drive_link",
       },
       {
         title: "GAC Lab Notes - Week 6",
-        href: "https://docs.google.com/presentation/d/1fwvYJmwdNfEx2hAHOr1DsihOkxGU-VXA/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://drive.google.com/file/d/1JVQsZbG0Rr9X5-XCMSOq8KrNfqUfFFRc/view?usp=drive_link",
       },
       {
         title: "GAC Lab Notes - Week 7",
-        href: "https://docs.google.com/presentation/d/1eSiJ0c_pXoFKnsUYDj9kicvXHgbi0iLm/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://drive.google.com/file/d/1jHwaD8TIvnD7wLSGdIoWq0nXvKdQ4qVo/view?usp=drive_link",
       },
       {
         title: "GAC Lab Notes - Week 8",
-        href: "https://docs.google.com/presentation/d/1GUnFjI5seUQIhtaBWzWk0Jv3ZQ8MUxAT/edit?usp=drive_link&ouid=103038811561126855181&rtpof=true&sd=true",
+        href: "https://drive.google.com/file/d/1pqSU47FP7RMqytmS37iXVxuNjhrbJ9Uf/view?usp=drive_link",
       },
       {
         title: "GAC Lab Notes - Week 9",
-        href: "https://drive.google.com/open?id=1BfAfEVqwgQ2T9q5x16Zn-3I08lo6wOCW&usp=drive_copy",
+        href: "https://drive.google.com/file/d/1K2s9qQOmZHnEf3-xfekQW0PhcFUmw42A/view?usp=drive_link",
       },
       {
         title: "GAC Lab Notes - Week 10",
-        href: "https://drive.google.com/open?id=1vg_y3UMQrGKbVyulpUOtKTK-n0ltrq-Y&usp=drive_copy",
+        href: "https://drive.google.com/file/d/1ICBCYnl5apVIQ11h4zkqqyeL-3FvHm2I/view?usp=drive_link",
       },
     ],
   },

@@ -29,7 +29,7 @@ function MaterialsPage(): JSX.Element {
           <Typography
             component="h1"
             className="!text-3xl !font-bold !text-slate-50 md:!text-4xl">
-            Materials
+            Teaching Materials
           </Typography>
         </div>
         <Button
