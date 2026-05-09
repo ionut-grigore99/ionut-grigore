@@ -25,6 +25,8 @@ export interface StudyItem {
   years: string;
   details: string;
   note: string;
+  documents?: MaterialItem[];
+  image?: MaterialItem;
 }
 
 export interface PublicationItem {

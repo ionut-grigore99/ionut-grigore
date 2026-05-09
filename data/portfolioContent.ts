@@ -68,9 +68,9 @@ export const experiences: ExperienceItem[] = [
     ],
     documents: [
       { title: "Depth Completion Technical Report", href: "https://drive.google.com/file/d/1eHS8gSgSkS3tJmITf95AahfDicxkQIHe/view?usp=drive_link" },
-      { title: "Dock segmentation and positional offset estimation", href: "https://drive.google.com/file/d/1JlYDtDLbJMnjmn-PwLzuqRZaX2rf9m9R/view?usp=drive_link" },
-      { title: "Hercules Deep Features: Loogbook", href: "https://drive.google.com/file/d/18fpmpb1R0agadcaAxSNxq-jHY9YVZj7S/view?usp=drive_link" },
-      { title: "Hercules Deep Features: Technical Report", href: "https://drive.google.com/file/d/1lvuKiKWb6fKpLAuupsN63taRawwDC8xA/view?usp=drive_link" },
+      { title: "Dock Segmentation and Positional Offset Estimation", href: "https://drive.google.com/file/d/1JlYDtDLbJMnjmn-PwLzuqRZaX2rf9m9R/view?usp=drive_link" },
+      { title: "Feature Detection/Matching: Loogbook", href: "https://drive.google.com/file/d/18fpmpb1R0agadcaAxSNxq-jHY9YVZj7S/view?usp=drive_link" },
+      { title: "Feature Detection/Matching: Technical Report", href: "https://drive.google.com/file/d/1lvuKiKWb6fKpLAuupsN63taRawwDC8xA/view?usp=drive_link" },
     ],
   },
   {
@@ -120,6 +120,10 @@ export const studies: StudyItem[] = [
     details:
       "Dissertation thesis: MambaDepth, integrating state-space modeling ideas for self-supervised monocular depth estimation.",
     note: "Graduated 10/10, Best Poster Award at EEML 2024 (Novi Sad)",
+    documents: [
+      { title: "Disertation Thesis", href: "https://drive.google.com/file/d/1ujvxuVFEcjwq9WeeyCi7W10O2Io8_O6P/view?usp=drive_link" },
+    ],
+    image: { title: "Best Poster Award", href: "https://drive.google.com/file/d/1JOxGevzelezQCli0jK3_W9_5AhEL55VW/view?usp=drive_link" },
   },
   {
     degree: "Bachelor's Degree in Computer Science",
@@ -128,6 +132,10 @@ export const studies: StudyItem[] = [
     details:
       "Bachelor thesis: Self-Supervised Monocular Depth Estimation using ManyDepth, with strong focus on deep learning and computer vision fundamentals.",
     note: "Graduated 10/10 (Magna Cum Laude)",
+    documents: [
+      { title: "Bachelor Thesis", href: "https://drive.google.com/file/d/1Ozw6B45N0hXEpEqxna9C3PfF2GkIWXhd/view?usp=drive_link" },
+    ],
+    image: { title: "Magna Cum Laude Distinction", href: "https://drive.google.com/file/d/1f5ssOCgrplRUDqyMhUTvqL94tWc4UZSR/view?usp=drive_link" },
   },
   {
     degree: "High School",
