@@ -6,11 +6,17 @@ export interface Profile {
   about: string;
 }
 
+export interface MaterialItem {
+  title: string;
+  href: string;
+}
+
 export interface ExperienceItem {
   title: string;
   organization: string;
   period: string;
   bullets: string[];
+  documents?: MaterialItem[];
 }
 
 export interface StudyItem {
@@ -33,11 +39,6 @@ export interface ContactInfo {
   email: string;
   location: string;
   intro: string;
-}
-
-export interface MaterialItem {
-  title: string;
-  href: string;
 }
 
 export interface MaterialSection {

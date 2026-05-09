@@ -50,6 +50,26 @@ function Experience({ items }: ExperienceProps): JSX.Element {
                   </ListItem>
                 ))}
               </List>
+
+              {item.documents && item.documents.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {item.documents.map((doc) => (
+                    <a
+                      key={doc.href}
+                      href={doc.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-md border border-cyan-800/60 bg-cyan-950/40 px-3 py-1 text-xs text-cyan-300 transition-colors hover:border-cyan-500/70 hover:bg-cyan-900/40 hover:text-cyan-200"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                      </svg>
+                      {doc.title}
+                    </a>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}

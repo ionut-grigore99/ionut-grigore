@@ -30,6 +30,9 @@ export const experiences: ExperienceItem[] = [
       "Working on 2D teeth segmentation, 2D-3D alignment between facial images and intraoral scans, and monocular camera parameter estimation (with a particular focus on estimating the camera's focal length).",
       "Researching diffusion-based inpainting and image enhancement methods, including automatic white-balance correction for real user photos.",
     ],
+    documents: [
+      // { title: "Report: Focal Length Estimation", href: "https://drive.google.com/..." },
+    ],
   },
   {
     title: "Teaching Assistant",
@@ -50,6 +53,9 @@ export const experiences: ExperienceItem[] = [
       "Contributed to the ProstateAI project: fully automated AI workflow for prostate MRI examination.",
       "Improved the false-positive reduction model within ProstateAI, enhancing lesion-level specificity and overall system reliability.",
     ],
+    documents: [
+      { title: "ProstateAI Technical Report", href: "https://drive.google.com/file/d/1Wj6hrp3R0indHfM56ux6P_J206TBFKLC/view?usp=drive_link" },
+    ],
   },
   {
     title: "Applied Scientist",
@@ -59,6 +65,9 @@ export const experiences: ExperienceItem[] = [
       "Researched and evaluated SOTA methods for depth completion, feature detection/matching, semantic segmentation, and pose estimation.",
       "Developed and improved models for Ring drone perception tasks, including dock segmentation and positional offset estimation.",
       "Advanced SuperPoint-style feature pipelines, leading to acceptance at EEML 2025 for presenting feature detection and matching work.",
+    ],
+    documents: [
+      // { title: "FPC-Net Paper (EEML 2025)", href: "https://drive.google.com/..." },
     ],
   },
   {
@@ -342,6 +351,10 @@ export const materials: MaterialSection[] = [
       {
         title: "GAC Lab Notes - Week 10",
         href: "https://drive.google.com/file/d/1ICBCYnl5apVIQ11h4zkqqyeL-3FvHm2I/view?usp=drive_link",
+      },
+      {
+        title: "GAC Lab Notes - Week 11",
+        href: "https://drive.google.com/file/d/1Q71a7jXo-Jopqje-0lpeduN8s1307myA/view?usp=drive_link",
       },
     ],
   },
