@@ -67,7 +67,10 @@ export const experiences: ExperienceItem[] = [
       "Advanced SuperPoint-style feature pipelines, leading to acceptance at EEML 2025 for presenting feature detection and matching work.",
     ],
     documents: [
-      // { title: "FPC-Net Paper (EEML 2025)", href: "https://drive.google.com/..." },
+      { title: "Depth Completion Technical Report", href: "https://drive.google.com/file/d/1eHS8gSgSkS3tJmITf95AahfDicxkQIHe/view?usp=drive_link" },
+      { title: "Dock segmentation and positional offset estimation", href: "https://drive.google.com/file/d/1JlYDtDLbJMnjmn-PwLzuqRZaX2rf9m9R/view?usp=drive_link" },
+      { title: "Hercules Deep Features: Loogbook", href: "https://drive.google.com/file/d/18fpmpb1R0agadcaAxSNxq-jHY9YVZj7S/view?usp=drive_link" },
+      { title: "Hercules Deep Features: Technical Report", href: "https://drive.google.com/file/d/1lvuKiKWb6fKpLAuupsN63taRawwDC8xA/view?usp=drive_link" },
     ],
   },
   {
