@@ -32,7 +32,7 @@ export const experiences: ExperienceItem[] = [
     ],
     documents: [
       { title: "3D-2D Alignment Report", href: "https://ionut-grigore99.github.io/ionut-grigore/htmls/alignment_report_dino_final.html" },
-      // { title: "Automatic White-Balance Correction Report", href: "https://drive.google.com/..." },
+      { title: "Automatic White-Balance Correction Report", href: "https://ionut-grigore99.github.io/ionut-grigore/htmls/papers_comparison_white_balance.html" },
     ],
   },
   {
