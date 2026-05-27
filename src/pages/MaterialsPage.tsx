@@ -58,14 +58,38 @@ function MaterialsPage(): JSX.Element {
                         <Typography className="!text-slate-200">
                           {item.title}
                         </Typography>
-                        <Link
-                          href={item.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          underline="hover"
-                          className="!font-medium !text-cyan-200 hover:!text-cyan-100">
-                          Open
-                        </Link>
+                        <div className="flex gap-2">
+                          {item.pdf && (
+                            <Link
+                              href={item.pdf}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              underline="none"
+                              className="!rounded-md !border !border-cyan-700/60 !px-3 !py-1 !text-sm !font-medium !text-cyan-200 hover:!border-cyan-500 hover:!bg-cyan-500/10 hover:!text-cyan-100">
+                              PDF
+                            </Link>
+                          )}
+                          {item.ppt && (
+                            <Link
+                              href={item.ppt}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              underline="none"
+                              className="!rounded-md !border !border-orange-700/60 !px-3 !py-1 !text-sm !font-medium !text-orange-200 hover:!border-orange-500 hover:!bg-orange-500/10 hover:!text-orange-100">
+                              PPT
+                            </Link>
+                          )}
+                          {item.href && !item.pdf && !item.ppt && (
+                            <Link
+                              href={item.href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              underline="hover"
+                              className="!font-medium !text-cyan-200 hover:!text-cyan-100">
+                              Open
+                            </Link>
+                          )}
+                        </div>
                       </ListItem>
                       {index < group.items.length - 1 && (
                         <Divider className="!border-cyan-900/40" />

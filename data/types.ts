@@ -8,7 +8,9 @@ export interface Profile {
 
 export interface MaterialItem {
   title: string;
-  href: string;
+  href?: string;
+  pdf?: string;
+  ppt?: string;
 }
 
 export interface ExperienceItem {
