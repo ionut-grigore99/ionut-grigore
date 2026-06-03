@@ -31,7 +31,7 @@ export const experiences: ExperienceItem[] = [
       "Researching diffusion-based inpainting and image enhancement methods, including automatic white-balance correction for real user photos.",
     ],
     documents: [
-      // { title: "3D-2D Alignment Report", href: "https://ionut-grigore99.github.io/ionut-grigore/htmls/alignment_report_dino_final.html" },
+      { title: "3D-2D Alignment Report", href: "https://ionut-grigore99.github.io/ionut-grigore/htmls/alignment_report_dino_final.html" },
       // { title: "Automatic White-Balance Correction Report", href: "https://ionut-grigore99.github.io/ionut-grigore/htmls/papers_comparison_white_balance.html" },
     ],
   },
