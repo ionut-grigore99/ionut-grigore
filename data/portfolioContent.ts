@@ -114,6 +114,9 @@ export const studies: StudyItem[] = [
     details:
       "Researching self-supervised depth estimation and 3D scene understanding, with focus on representation learning, uncertainty estimation, and state-space modeling. Involved in the national HRIA (Romanian Hub for Artificial Intelligence) research project.",
     note: "Current PhD student (research track)",
+    documents: [
+      { title: "PhD Research Presentation", href: "https://drive.google.com/file/d/1hHM9nMQ_KDoWqtBA9hH4VzizM2AjIWtt/view?usp=drive_link" },
+    ],
   },
   {
     degree: "Master of Engineering (Machine Learning)",
