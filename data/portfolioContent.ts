@@ -127,6 +127,7 @@ export const studies: StudyItem[] = [
     note: "Graduated 10/10, Best Poster Award at EEML 2024 (Novi Sad)",
     documents: [
       { title: "Disertation Thesis", href: "https://drive.google.com/file/d/1ujvxuVFEcjwq9WeeyCi7W10O2Io8_O6P/view?usp=drive_link" },
+      { title: "Thesis Presentation", href: "https://drive.google.com/file/d/16GyUX9THWZ_9zk0zvdo2C7hqKvIDORFZ/view?usp=drive_link" },
     ],
     image: { title: "Best Poster Award", href: "https://drive.google.com/file/d/1JOxGevzelezQCli0jK3_W9_5AhEL55VW/view?usp=drive_link" },
   },
@@ -139,6 +140,7 @@ export const studies: StudyItem[] = [
     note: "Graduated 10/10 (Magna Cum Laude)",
     documents: [
       { title: "Bachelor Thesis", href: "https://drive.google.com/file/d/1Ozw6B45N0hXEpEqxna9C3PfF2GkIWXhd/view?usp=drive_link" },
+      { title: "Thesis Presentation", href: "https://drive.google.com/file/d/1J_32l6BouNvwbCFbAvl8wyMZS8emcoOa/view?usp=drive_link" },
     ],
     image: { title: "Magna Cum Laude Distinction", href: "https://drive.google.com/file/d/1f5ssOCgrplRUDqyMhUTvqL94tWc4UZSR/view?usp=drive_link" },
   },
