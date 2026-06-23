@@ -126,7 +126,7 @@ export const studies: StudyItem[] = [
       "Dissertation thesis: MambaDepth, integrating state-space modeling ideas for self-supervised monocular depth estimation.",
     note: "Graduated 10/10, Best Poster Award at EEML 2024 (Novi Sad)",
     documents: [
-      { title: "Disertation Thesis", href: "https://drive.google.com/file/d/1ujvxuVFEcjwq9WeeyCi7W10O2Io8_O6P/view?usp=drive_link" },
+      { title: "Dissertation Thesis", href: "https://drive.google.com/file/d/1ujvxuVFEcjwq9WeeyCi7W10O2Io8_O6P/view?usp=drive_link" },
       { title: "Thesis Presentation", href: "https://drive.google.com/file/d/16GyUX9THWZ_9zk0zvdo2C7hqKvIDORFZ/view?usp=drive_link" },
     ],
     image: { title: "Best Poster Award", href: "https://drive.google.com/file/d/1JOxGevzelezQCli0jK3_W9_5AhEL55VW/view?usp=drive_link" },
