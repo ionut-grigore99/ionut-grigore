@@ -45,6 +45,9 @@ export const experiences: ExperienceItem[] = [
       "Teaching Computer Assisted Mathematics Laboratory for 1st-year students using MATLAB.",
       "Mentoring students on practical machine learning projects and fundamentals, and coordinating bachelor thesis projects.",
     ],
+    documents: [
+      { title: "Bachelor Thesis Results 2025-2026", href: "https://ionut-grigore99.github.io/ionut-grigore/htmls/bachelor_thesis_results_2025_2026.html" },
+    ],
   },
   {
     title: "AI Research Scientist",
