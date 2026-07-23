@@ -7,9 +7,9 @@ interface PublicationsProps {
 }
 
 const filterOptions: Array<{ label: string; value: PublicationItem['filter'] }> = [
-  { label: 'Research', value: 'research' },
-  { label: 'Problems', value: 'problems' },
-  { label: 'Articles', value: 'articles' },
+  { label: 'Research Papers', value: 'research' },
+  { label: 'Mathematical Problems', value: 'problems' },
+  { label: 'Media Coverage', value: 'articles' },
 ];
 
 function Publications({ items }: PublicationsProps): JSX.Element {
@@ -23,7 +23,7 @@ function Publications({ items }: PublicationsProps): JSX.Element {
     <section id="publications" className="scroll-mt-24 mb-12 md:mb-16">
       <div className="mb-5 flex items-center gap-4">
         <Typography component="h2" className="!text-3xl !font-semibold !text-slate-50">
-          Publications / Articles
+          Publications
         </Typography>
         <div className="h-px flex-1 bg-gradient-to-r from-cyan-800/70 to-transparent" />
       </div>

@@ -176,7 +176,7 @@ export const publications: PublicationItem[] = [
   },
   {
     filter: "problems",
-    venue: "-",
+    venue: "Gazeta Matematică din București",
     title:
       '2 problems published in "Gazeta Matematică din București", number 6-7-8/2015, problem 27085-page 367 and problem 27108-page 370',
     authors: "I. Grigore",
@@ -184,9 +184,9 @@ export const publications: PublicationItem[] = [
   },
   {
     filter: "problems",
-    venue: "-",
+    venue: "Romanian Mathematical Competitions (RMC 2016)",
     title:
-      'A problem for lot selection at Junior Balkan Mathematical Olympiad-2016 published in "ROMANIAN MATHEMATICAL COMPETITIONS-RMC 2016", problem 7, page 72',
+      'A problem for lot selection at Junior Balkan Mathematical Olympiad-2016 published in "Romanian Mathematical Competitions (RMC 2016)", problem 7, page 72',
     authors: "I. Grigore",
     link: "https://pregatirematematicaolimpiadejuniori.files.wordpress.com/2016/07/2016_tests-1234.pdf",
   },
