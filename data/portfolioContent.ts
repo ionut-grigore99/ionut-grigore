@@ -22,7 +22,7 @@ export const profile: Profile = {
 
 export const experiences: ExperienceItem[] = [
   {
-    title: "AI Engineer",
+    title: "Applied Scientist",
     organization: "Smilecloud",
     period: "Jul 2025 - Present",
     bullets: [
@@ -173,6 +173,14 @@ export const publications: PublicationItem[] = [
       "FPC-Net: Revisiting SuperPoint with Descriptor-Free Keypoint Detection via Feature Pyramids and Consistency-Based Implicit Matching",
     authors: "I. Grigore, C.A. Popa, C. Leoveanu-Condrei",
     link: "https://arxiv.org/abs/2507.10770",
+  },
+  {
+    filter: "research",
+    venue: "arXiv 2026",
+    title:
+      "JEPADepth: Masked Predictive Representation Learning for Self-Supervised Monocular Depth Estimation",
+    authors: "I. Grigore, C.A. Popa",
+    link: "https://arxiv.org/abs/...",
   },
   {
     filter: "problems",

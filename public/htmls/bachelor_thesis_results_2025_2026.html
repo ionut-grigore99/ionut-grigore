@@ -37,6 +37,18 @@
   .dot { width: 10px; height: 10px; border-radius: 50%; }
   .dash { width: 18px; height: 0; border-top: 2px dashed var(--text-muted); }
   .chart-wrap { position: relative; width: 100%; height: 460px; }
+  .photo { margin: 2rem 0 0; }
+  .photo img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+  .photo figcaption { font-size: 12px; color: var(--text-muted); margin-top: 8px; text-align: center; }
+  @media (max-width: 520px) {
+    .chart-wrap { height: 360px; }
+  }
   @media (prefers-color-scheme: dark) {
     :root {
       --text-primary: #ffffff;
@@ -69,6 +81,11 @@
   <div class="chart-wrap">
     <canvas id="thesisChart" role="img" aria-label="Scatter plot of four-year faculty average versus thesis grade for 10 anonymized students, with a dashed diagonal reference line. Eight of ten points sit above the line.">Each point is a student; the dashed diagonal marks where thesis grade equals the four-year average. Most points sit above it.</canvas>
   </div>
+
+  <figure class="photo">
+    <img src="graduation_photo_2026.jpeg" alt="Graduation ceremony 2026 — coordinator with the graduating students in caps and gowns." loading="lazy">
+    <figcaption>Graduation ceremony, 2026 — with the graduating students.</figcaption>
+  </figure>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
