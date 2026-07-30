@@ -180,7 +180,7 @@ export const publications: PublicationItem[] = [
     title:
       "JEPADepth: Masked Predictive Representation Learning for Self-Supervised Monocular Depth Estimation",
     authors: "I. Grigore, C.A. Popa",
-    link: "https://arxiv.org/abs/...",
+    link: "https://arxiv.org/pdf/2607.26600",
   },
   {
     filter: "problems",
