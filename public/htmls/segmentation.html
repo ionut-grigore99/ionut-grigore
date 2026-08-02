@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Teeth and inner lip segmentation</title>
+<meta name="description" content="Per-tooth and inner-lip segmentation of smile photos with a LoRA-finetuned DINOv3 ViT-S/16: how it works, how fast it is, and what it scores on a 440-image held-out test set.">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+:root{
+  color-scheme:light;
+  --plane:#f9f9f7; --surface:#fcfcfb; --surface-2:#f3f2ee;
+  --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --hair:rgba(11,11,11,.10);
+  --accent:#2a78d6; --accent-2:#eb6834;
+  --wash:rgba(42,120,214,.08);
+  --shadow:0 1px 2px rgba(11,11,11,.04),0 8px 24px -12px rgba(11,11,11,.10);
+  --r:14px;
+}
+@media (prefers-color-scheme:dark){
+  :root:where(:not([data-theme=light])){
+    color-scheme:dark;
+    --plane:#0d0d0d; --surface:#1a1a19; --surface-2:#232322;
+    --ink:#fff; --ink-2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --hair:rgba(255,255,255,.10);
+    --accent:#3987e5; --accent-2:#d95926;
+    --wash:rgba(57,135,229,.12);
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme=dark]{
+  color-scheme:dark;
+  --plane:#0d0d0d; --surface:#1a1a19; --surface-2:#232322;
+  --ink:#fff; --ink-2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --axis:#383835; --hair:rgba(255,255,255,.10);
+  --accent:#3987e5; --accent-2:#d95926;
+  --wash:rgba(57,135,229,.12);
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6);
+}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--plane);color:var(--ink);
+  font:400 16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+h1,h2,h3,h4{line-height:1.2;margin:0;letter-spacing:-.02em;font-weight:600}
+p{margin:0 0 1em} p:last-child{margin-bottom:0}
+a{color:var(--accent)} small{font-size:.8125rem}
+
+header{border-bottom:1px solid var(--hair);background:var(--surface)}
+.top{display:flex;align-items:center;justify-content:flex-end;gap:16px;padding:14px 0}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav a{color:var(--ink-2);text-decoration:none;font-size:.875rem;padding:6px 10px;border-radius:8px}
+nav a:hover{background:var(--surface-2);color:var(--ink)}
+.theme{border:1px solid var(--hair);background:transparent;color:var(--ink-2);font:inherit;
+  font-size:.8125rem;padding:6px 12px;border-radius:8px;cursor:pointer;flex:none}
+.theme:hover{background:var(--surface-2);color:var(--ink)}
+/* the in-page nav would stack into a tall column on a phone; the page reads top-to-bottom anyway */
+@media (max-width:880px){nav{display:none}}
+
+.hero{padding:64px 0 56px}
+.eyebrow{font-size:.75rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:14px}
+.hero h1{font-size:clamp(2rem,5vw,3.25rem)}
+.hero .lede{font-size:1.125rem;color:var(--ink-2);margin-top:20px}
+
+section{padding:56px 0;border-top:1px solid var(--hair)}
+.shead{margin-bottom:32px}
+.shead .num{font-size:.75rem;font-weight:600;letter-spacing:.08em;color:var(--muted);margin-bottom:10px}
+.shead h2{font-size:clamp(1.5rem,3vw,2rem)}
+.shead p{color:var(--ink-2);margin-top:12px}
+.card{background:var(--surface);border:1px solid var(--hair);border-radius:var(--r);
+  padding:24px;box-shadow:var(--shadow)}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.lead-in{font-size:1.0625rem}
+
+.tile{background:var(--surface);border:1px solid var(--hair);border-radius:var(--r);padding:20px 22px}
+.tile .k{font-size:.8125rem;color:var(--ink-2);margin-bottom:8px}
+.tile .v{font-size:2rem;font-weight:600;letter-spacing:-.03em;line-height:1.1}
+.tile .v .u{font-size:.9375rem;font-weight:500;color:var(--ink-2);letter-spacing:0;margin-left:3px}
+.tile .n{font-size:.75rem;color:var(--muted);margin-top:7px}
+
+.tscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:.875rem;font-variant-numeric:tabular-nums}
+th,td{text-align:right;padding:10px 12px;border-bottom:1px solid var(--grid);white-space:nowrap}
+th:first-child,td:first-child{text-align:left;font-variant-numeric:normal}
+thead th{font-weight:600;font-size:.75rem;letter-spacing:.03em;text-transform:uppercase;
+  color:var(--muted);border-bottom:1px solid var(--axis)}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--wash)}
+td.on{color:var(--ink);font-weight:600}
+.pick{background:var(--wash)}
+.tag{display:inline-block;font-size:.6875rem;font-weight:600;padding:2px 8px;border-radius:999px;
+  background:var(--accent);color:#fff;margin-left:8px;vertical-align:1px}
+
+/* bar chart: one series -> one hue for every bar and no legend; 4px rounded data-end, square
+   at the baseline; the axis sits in the grid's middle column so its ticks line up with the track */
+figure{margin:0}
+figcaption{font-size:.8125rem;color:var(--muted);margin-top:14px}
+.bars{display:grid;grid-template-columns:auto 1fr auto auto;gap:3px 14px;align-items:center;
+  font-size:.8125rem;font-variant-numeric:tabular-nums}
+.bars .lbl{color:var(--ink-2);text-align:right;white-space:nowrap}
+.bars .track{position:relative;height:22px;
+  background:linear-gradient(var(--grid),var(--grid)) no-repeat left center/100% 1px}
+.bars .fill{position:absolute;left:0;top:3px;height:16px;background:var(--accent);
+  border-radius:0 4px 4px 0;transition:width .5s cubic-bezier(.22,1,.36,1)}
+.bars .val{color:var(--ink);font-weight:600}
+/* how many photos show that tooth — recessive, it is context for the bar, not a second series */
+.bars .cnt{color:var(--muted);font-size:.75rem;text-align:right;white-space:nowrap}
+.bars .hd{font-size:.6875rem;font-weight:600;letter-spacing:.03em;text-transform:uppercase;
+  color:var(--muted);padding-bottom:2px}
+.bars .sep{grid-column:1/-1;height:10px}
+.bars .axis{grid-column:2;margin-top:6px}
+.axis{display:flex;justify-content:space-between;font-size:.6875rem;color:var(--muted);
+  border-top:1px solid var(--axis);margin-top:8px;padding-top:6px;font-variant-numeric:tabular-nums}
+
+.hist{display:flex;align-items:flex-end;gap:2px;height:120px;margin-top:4px}
+.hist .b{flex:1;background:var(--accent);border-radius:3px 3px 0 0;min-height:2px;position:relative}
+.hist .b[data-n="0"]{background:transparent}
+.hist .b:hover::after{content:attr(data-t);position:absolute;bottom:100%;left:50%;
+  transform:translateX(-50%);background:var(--ink);color:var(--plane);font-size:.6875rem;
+  padding:4px 8px;border-radius:6px;white-space:nowrap;margin-bottom:6px;z-index:5;font-weight:500}
+
+.diagram{background:#fff;border:1px solid var(--hair);border-radius:var(--r);padding:16px;overflow-x:auto}
+.diagram img{display:block;width:100%;min-width:560px;height:auto}
+/* figure inside a card. Fixed height, not min-height, so the two cards' images occupy the same
+   box and the paragraphs below them start on the same line. Each image scales up to fill that
+   height; unet.png is a small source (190px wide) so it takes some enlargement, which flat line
+   art survives far better than being left as a stamp in the middle of an empty box. */
+.card figure.pic{background:#fff;border:1px solid var(--hair);border-radius:10px;padding:14px;
+  margin:0 0 18px;display:flex;align-items:center;justify-content:center;height:212px}
+.card figure.pic img{display:block;max-width:100%;height:100%;width:auto;object-fit:contain}
+
+/* plot / diagram on a white plate, so figures with white backgrounds keep their own contrast
+   in dark mode instead of glowing */
+figure.plate{background:#fff;border:1px solid var(--hair);border-radius:10px;padding:12px;margin:0}
+figure.plate img{display:block;width:100%;height:auto}
+
+/* augmentation block: the tall per-transform grid on the left, prose + the flip pair on the
+   right. The two columns then come out roughly the same height. */
+.augwrap{display:grid;gap:26px;grid-template-columns:minmax(0,330px) minmax(0,1fr);align-items:start}
+@media (max-width:820px){.augwrap{grid-template-columns:1fr}}
+
+/* loss cards */
+.losses{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));
+  margin-bottom:8px}
+.losses.pair{grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))}
+.loss{background:var(--surface-2);border:1px solid var(--hair);border-radius:12px;padding:15px 16px}
+.loss.used{background:var(--wash);border-color:var(--accent)}
+.loss h5{font-size:.875rem;font-weight:600;margin:0 0 10px;color:var(--ink)}
+.loss .math{font:400 .9375rem/1.7 Cambria,Georgia,"Times New Roman",serif;
+  background:var(--surface);border:1px solid var(--hair);border-radius:8px;padding:8px 11px;
+  margin-bottom:11px;overflow-x:auto;white-space:nowrap;color:var(--ink)}
+.loss .math i{font-style:italic}
+.loss p{font-size:.8125rem;color:var(--ink-2);margin:0}
+.loss .paper{display:inline-block;margin-top:11px;font-size:.75rem}
+.loss figure.diag{background:#fff;border:1px solid var(--hair);border-radius:8px;padding:10px;
+  margin:0 0 11px;display:flex;align-items:center;justify-content:center;height:190px}
+.loss figure.diag img{max-height:100%;max-width:100%;height:auto;width:auto}
+h5.block{font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);margin:22px 0 12px}
+h5.block:first-of-type{margin-top:4px}
+
+.flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:10px}
+.flow .step{flex:1 1 150px;background:var(--surface);border:1px solid var(--hair);
+  border-radius:12px;padding:14px 16px}
+.flow .step .t{font-size:.8125rem;font-weight:600;margin-bottom:4px}
+.flow .step .d{font-size:.75rem;color:var(--ink-2);line-height:1.5}
+.flow .arw{display:flex;align-items:center;color:var(--axis);font-size:1.125rem}
+@media (max-width:720px){.flow .arw{display:none}}
+
+.key{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.key .sw{display:inline-flex;align-items:center;gap:6px;font-size:.75rem;color:var(--ink-2);
+  background:var(--surface-2);border-radius:999px;padding:4px 10px 4px 6px;font-variant-numeric:tabular-nums}
+.key .sw i{width:12px;height:12px;border-radius:3px;flex:none}
+
+.tabs{display:inline-flex;gap:4px;background:var(--surface-2);padding:4px;border-radius:11px;margin-bottom:8px}
+.tabs button{border:0;background:transparent;color:var(--ink-2);font:inherit;font-size:.875rem;
+  font-weight:500;padding:8px 16px;border-radius:8px;cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--surface);color:var(--ink);
+  box-shadow:var(--shadow);font-weight:600}
+.gbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}
+.gnote{font-size:.8125rem;color:var(--muted)}
+.gal{display:grid;gap:20px;grid-template-columns:repeat(auto-fill,minmax(min(100%,500px),1fr))}
+.samp{background:var(--surface);border:1px solid var(--hair);border-radius:var(--r);
+  overflow:hidden;box-shadow:var(--shadow)}
+.trip{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:var(--hair);
+  border:0;padding:0;margin:0;width:100%;cursor:zoom-in;font:inherit}
+.trip figure{position:relative;margin:0;background:var(--surface-2);container-type:inline-size}
+.trip img{display:block;width:100%;height:auto;aspect-ratio:1;object-fit:cover}
+/* One full-width strip per panel. A content-sized pill gave the three captions three
+   different widths, so the label is stretched instead and its type scales with the panel
+   (cqi = 1% of the panel's width, em padding follows the type): Input / GT Human Annotation /
+   Model Prediction then read at the same proportion in the grid and in the lightbox alike. */
+.trip figcaption{position:absolute;left:0;right:0;top:0;margin:0;text-align:center;
+  font-size:clamp(.5rem,5.2cqi,.8125rem);font-weight:600;letter-spacing:.02em;
+  color:#fff;background:rgba(11,11,11,.62);padding:.42em .5em;white-space:nowrap;
+  backdrop-filter:blur(3px)}
+.trip:hover figcaption{background:var(--accent)}
+.trip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.samp .meta{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:10px 13px}
+.samp .sc{font-size:.75rem;font-weight:600;color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
+.samp .sc s{text-decoration:none;color:var(--muted);font-weight:400}
+.more{display:block;margin:24px auto 0;border:1px solid var(--hair);background:var(--surface);
+  color:var(--ink);font:inherit;font-size:.875rem;font-weight:500;padding:11px 24px;
+  border-radius:10px;cursor:pointer}
+.more:hover{background:var(--surface-2)}
+.more[hidden]{display:none}
+
+/* explicit width, not max-width: the panels carry container-type, so their images no longer
+   contribute intrinsic width and a content-sized dialog would collapse */
+dialog.lb{border:0;padding:0;background:transparent;width:min(1400px,96vw);max-height:94vh;color:var(--ink)}
+dialog.lb::backdrop{background:rgba(11,11,11,.86);backdrop-filter:blur(3px)}
+dialog.lb .inner{background:var(--surface);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
+dialog.lb .trip{cursor:default;gap:2px}
+dialog.lb .bar{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 16px}
+dialog.lb .sc{font-size:.8125rem;font-weight:600;font-variant-numeric:tabular-nums}
+dialog.lb .x{border:1px solid var(--hair);background:transparent;color:var(--ink-2);font:inherit;
+  font-size:.8125rem;padding:6px 14px;border-radius:8px;cursor:pointer}
+dialog.lb .x:hover{background:var(--surface-2);color:var(--ink)}
+
+ul.clean{margin:0;padding-left:1.15em;color:var(--ink-2);font-size:.9375rem}
+ul.clean li{margin-bottom:.4em} ul.clean li:last-child{margin-bottom:0}
+ul.clean b{color:var(--ink);font-weight:600}
+.note{border-left:3px solid var(--accent-2);background:var(--surface);border-radius:0 12px 12px 0;
+  padding:16px 20px;font-size:.875rem;color:var(--ink-2)}
+.note b{color:var(--ink)}
+h3.sub{font-size:1.0625rem;margin-bottom:12px}
+h4.mini{font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:12px}
+/* paper links inside a label: keep the label's weight, mark them with an underline rather than
+   the link blue, which would shout next to the muted uppercase text */
+h4.mini a{color:var(--ink-2);text-decoration:underline;text-underline-offset:3px;
+  text-decoration-color:var(--axis)}
+h4.mini a:hover{color:var(--accent);text-decoration-color:var(--accent)}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.8125em;
+  background:var(--surface-2);padding:.15em .4em;border-radius:5px}
+footer{border-top:1px solid var(--hair);padding:32px 0 48px;color:var(--muted);font-size:.8125rem}
+@media print{nav,.theme,.tabs,.more{display:none}.samp,.card,.tile{break-inside:avoid}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap top">
+    <nav><a href="#what">What it does</a><a href="#why">Why DINOv3</a><a href="#backbone">Backbone</a><a href="#training">Training</a><a href="#numbers">Efficiency</a><a href="#accuracy">Performance</a><a href="#results">Visual Results</a></nav>
+    <button class="theme" id="tw" type="button">Dark</button>
+  </div>
+</header>
+
+<div class="wrap hero">
+  <h1>Teeth and inner lip segmentation</h1>
+  <p class="lede">Two small neural networks that segment <b>each individual upper tooth</b> and
+  <b>the opening between the lips</b> from a cropped mouth image — pixel by pixel.</p>
+  <div class="grid g4" style="margin-top:36px">
+    <div class="tile"><div class="k">Upper teeth — IoU</div><div class="v">96.3<span class="u">%</span></div><div class="n">against the GT human annotation, 440-image test set</div></div>
+    <div class="tile"><div class="k">Inner lip — IoU</div><div class="v">96.6<span class="u">%</span></div><div class="n">against the GT human annotation, 440-image test set</div></div>
+    <div class="tile"><div class="k">Speed</div><div class="v">200<span class="u"> img/s</span></div><div class="n">single image, one RTX 4090</div></div>
+    <div class="tile"><div class="k">Model size</div><div class="v">86<span class="u"> MB</span></div><div class="n">22.5 M parameters</div></div>
+  </div>
+</div>
+
+<section id="what">
+  <div class="wrap">
+    <div class="shead"><div class="num">01</div><h2>What the two models do</h2>
+    <p>Both read the same input — a cropped photo of a mouth — and both output a
+    <em>mask</em>: a picture where every pixel is labelled with what it belongs to. They differ
+    only in what they are asked to label.</p></div>
+    <div class="grid g2">
+      <div class="card">
+        <h3 class="sub">Upper teeth <span class="tag">12 classes</span></h3>
+        <p style="font-size:.9375rem;color:var(--ink-2)">Labels each visible upper tooth
+        <em>separately</em> — not just "tooth", but <em>which</em> tooth, using the standard
+        dental FDI numbering. That lets the pipeline reason about one tooth at a time.</p>
+        <div class="key"><span class="sw"><i style="background:rgb(255,87,87)"></i>11</span><span class="sw"><i style="background:rgb(255,140,66)"></i>12</span><span class="sw"><i style="background:rgb(255,193,59)"></i>13</span><span class="sw"><i style="background:rgb(214,222,45)"></i>14</span><span class="sw"><i style="background:rgb(130,214,82)"></i>15</span><span class="sw"><i style="background:rgb(46,196,148)"></i>16</span><span class="sw"><i style="background:rgb(86,204,242)"></i>21</span><span class="sw"><i style="background:rgb(66,153,245)"></i>22</span><span class="sw"><i style="background:rgb(108,122,244)"></i>23</span><span class="sw"><i style="background:rgb(163,106,240)"></i>24</span><span class="sw"><i style="background:rgb(219,99,224)"></i>25</span><span class="sw"><i style="background:rgb(247,92,158)"></i>26</span></div>
+        <p style="font-size:.8125rem;color:var(--muted);margin-top:14px">
+        FDI numbering: <code>11</code>–<code>16</code> run from the front-centre tooth backwards on
+        the patient's right, <code>21</code>–<code>26</code> the same on the left.</p>
+      </div>
+      <div class="card">
+        <h3 class="sub">Inner lip <span class="tag">1 class</span></h3>
+        <p style="font-size:.9375rem;color:var(--ink-2)">Outlines the mouth opening — the
+        region framed by the lips. This is the window through which teeth are visible.</p>
+        <div class="key"><span class="sw"><i style="background:rgb(46,220,130)"></i>inner lip</span></div>
+        <p style="font-size:.8125rem;color:var(--muted);margin-top:14px">
+        Trained and evaluated on the same photos as the teeth model, as a separate network.</p>
+      </div>
+    </div>
+    <figure class="diagram" style="margin-top:16px">
+      <img src="assets/pipeline.jpg"
+           alt="Pipeline: a portrait photo goes through a MediaPipe mouth crop, and the cropped mouth is fed to two separate DINOv3 networks — one producing the per-tooth mask, one the inner-lip mask.">
+    </figure>
+    <figcaption>From a full portrait to two masks. Google's MediaPipe face mesh locates the lips
+    and cuts a square crop around the mouth; that crop is <b>resized to 512×512 pixels</b>
+    — the size both networks were trained at — and passed to each model independently. The masks
+    come back at 512×512 and are scaled to the photo's original resolution.</figcaption>
+  </div>
+</section>
+
+<section id="why">
+  <div class="wrap">
+    <div class="shead"><div class="num">02</div><h2>Why we replaced the old model</h2></div>
+    <div class="grid g2">
+      <div class="card">
+        <h4 class="mini">Before</h4>
+        <h3 class="sub">U²-Net</h3>
+        <figure class="pic">
+          <img src="assets/unet.png"
+               alt="U-Net schematic: an encoder path that compresses the image, a decoder path that expands it again, and skip connections carrying detail across.">
+        </figure>
+        <p style="font-size:.9375rem;color:var(--ink-2)">A conventional convolutional network
+        trained from scratch on our data alone. It compresses the image down and expands it back
+        to a segmentation mask, with skip connections carrying fine detail across. It worked, but its segmentation quality
+        plateaued — the outlines it drew did not follow the real edge of a tooth closely enough,
+        and neighbouring teeth were often merged into one, because everything it knew had to be
+        learned from our few thousand photos.</p>
+      </div>
+      <div class="card" style="border-color:var(--accent)">
+        <h4 class="mini">Now</h4>
+        <h3 class="sub">DINOv3 vision transformer</h3>
+        <figure class="pic">
+          <img src="assets/dino.png"
+               alt="DINO self-distillation: a teacher and a student network see different augmented views of the same unlabelled image, and the student is trained to match the teacher's output distribution.">
+        </figure>
+        <p style="font-size:.9375rem;color:var(--ink-2)">Meta's DINOv3 is a
+        <em>foundation model</em>. It was pre-trained on over a billion images with <em>no labels
+        at all</em>: two copies of the network see different crops of the same photo and are trained
+        to agree with each other, which forces them to learn what objects and their boundaries
+        actually are. We keep all of that and only teach it the last, small step — which region is
+        which tooth, and which one is the inner lip.</p>
+      </div>
+    </div>
+    <h5 class="block" style="margin-top:28px">What the pre-training already gives us, before any
+      training of ours</h5>
+    <figure class="plate">
+      <img src="assets/encoder_features.jpg"
+           alt="Top row: five close-up photos of different mouths. Bottom row: for each one, four flat colour regions covering the mouth — the same four regions appear in the same arrangement in every photo, produced by clustering the pre-trained encoder's output with no labels and no training.">
+    </figure>
+    <figcaption style="margin-bottom:8px">Five mouth images run through the <b>pre-trained DINOv3
+    encoder</b> — no training of ours, no labels, no teeth data of any kind. For every small image patch it produces a list of numbers describing what it sees there. Grouping those numbers
+    into four clusters gives the bottom row, and the same four regions come out in the same
+    arrangement in every photo: the upper lip, the teeth, the rest of the mouth opening, and the lower
+    lip. Nobody told it a mouth has these parts.</figcaption>
+    <p class="lead-in" style="color:var(--ink-2)">This is why the approach works with so little annotated data. The encoder already distinguishes different mouth regions before seeing a single segmentation label. Fine-tuning only learns which region corresponds to the target class and sharpens its boundaries, requiring updates to only 2.6% of the network weights. U²-Net had to learn all of it
+    from our photos alone, which is both why it plateaued and why it was so easy to overfit.</p>
+  </div>
+</section>
+
+<section id="backbone">
+  <div class="wrap">
+    <div class="shead"><div class="num">03</div><h2>Choosing the backbone</h2>
+    <p>DINO ships as a family: same training recipe, many sizes. Larger backbones are marginally more accurate but cost considerably more memory and inference time, so both segmentation models use the smallest variant to minimize memory usage and inference latency.</p></div>
+
+    <div class="grid g2" style="align-items:start">
+      <div>
+        <h4 class="mini">Started here — <a href="https://arxiv.org/pdf/2304.07193"
+          target="_blank" rel="noopener">DINOv2 (2023)</a></h4>
+        <div class="tscroll card" style="padding:6px 8px">
+          <table>
+            <thead><tr><th>Variant</th><th>Parameters</th><th>Weights</th></tr></thead>
+            <tbody>
+              <tr class="pick"><td><b>ViT-S/14</b> <span class="tag">used</span></td>
+                <td class="on">21 M</td><td class="on">84 MB</td></tr>
+              <tr><td>ViT-B/14</td><td>86 M</td><td>~330 MB</td></tr>
+              <tr><td>ViT-L/14</td><td>300 M</td><td>~1.1 GB</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div>
+        <h4 class="mini">Moved to — <a href="https://arxiv.org/pdf/2508.10104"
+          target="_blank" rel="noopener">DINOv3 (2025)</a></h4>
+        <div class="tscroll card" style="padding:6px 8px;border-color:var(--accent)">
+          <table>
+            <thead><tr><th>Variant</th><th>Parameters</th><th>Weights</th></tr></thead>
+            <tbody>
+              <tr class="pick"><td><b>ViT-S/16</b> <span class="tag">chosen</span></td>
+                <td class="on">21 M</td><td class="on">83 MB</td></tr>
+              <tr><td>ViT-S+/16</td><td>29 M</td><td>110 MB</td></tr>
+              <tr><td>ViT-B/16</td><td>86 M</td><td>327 MB</td></tr>
+              <tr><td>ViT-L/16</td><td>300 M</td><td>~1.2 GB</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid g2" style="margin-top:20px;align-items:start">
+      <p style="color:var(--ink-2)">We began on <b>DINOv2</b>, and switched to <b>DINOv3</b> as soon
+      as Meta released it — same small size, same budget, better features. The patch size also
+      changed from 14 to 16 pixels, so we updated the input resolution from 504×504 to 512×512 to match the new backbone.</p>
+      <p style="color:var(--ink-2)">The results reported throughout this presentation is achieved using the smallest DINOv3 variant. Larger variants require substantially more memory and inference time, without providing sufficient benefits for our application.</p>
+    </div>
+
+    <div class="note" style="margin-top:20px">
+      <b>ViT-S+/16</b> is a wider distilled variant of ViT-S/16. It adds a larger feed-forward network (29M vs. 21M parameters), providing a modest performance boost while remaining lightweight.
+    </div>
+
+    <p style="margin-top:14px;font-size:.8125rem;color:var(--muted)">Parameter counts are Meta's
+    published numbers for each family. Weight sizes correspond to the downloaded Meta checkpoints stored locally.</p>
+  </div>
+</section>
+
+<section id="training">
+  <div class="wrap">
+    <div class="shead"><div class="num">04</div><h2>How the models were trained</h2>
+    <p>Instead of retraining the whole network, we freeze it and train two small
+    additions. This is the <b>LoRA</b> recipe, on the right of the diagram below.</p></div>
+
+    <figure class="diagram">
+      <img src="assets/finetuning.png"
+           alt="Three finetuning strategies: training only the decoder; training the decoder plus some encoder blocks; training the decoder plus small LoRA matrices attached to every frozen encoder block.">
+    </figure>
+    <figcaption style="margin-bottom:32px">Three ways to adapt a pre-trained encoder.
+    ❄️ = frozen, kept exactly as pre-trained. 🔥 = trained on our data. We use the
+    right-hand option.</figcaption>
+
+    <div class="grid g3">
+      <div class="card">
+        <h4 class="mini">Frozen ❄️</h4>
+        <h3 class="sub">The encoder</h3>
+        <p style="font-size:.875rem;color:var(--ink-2)">The pre-trained DINOv3 transformer that
+        turns the image into features. Untouched — so none of its general visual knowledge is
+        lost, and it cannot overfit to our small dataset.</p>
+      </div>
+      <div class="card">
+        <h4 class="mini">Trained 🔥</h4>
+        <h3 class="sub">LoRA adapters</h3>
+        <p style="font-size:.875rem;color:var(--ink-2)">A pair of very thin matrices
+        (rank&nbsp;16) added beside the attention layer of every transformer block. They adapt
+        the frozen features to inner lip and upper teeth at a tiny fraction of the parameter cost.</p>
+      </div>
+      <div class="card">
+        <h4 class="mini">Trained 🔥</h4>
+        <h3 class="sub">FPN decoder</h3>
+        <p style="font-size:.875rem;color:var(--ink-2)">Takes the last four feature levels of
+        the encoder and merges them coarse-to-fine, doubling resolution at each step. The fine
+        levels are what keep individual tooth edges well-defined.</p>
+      </div>
+    </div>
+
+    <div class="grid g4" style="margin-top:16px">
+      <div class="tile"><div class="k">Weights actually trained</div><div class="v">2.6<span class="u">%</span></div><div class="n">588,594 of 22,484,658</div></div>
+      <div class="tile"><div class="k">Annotated photos</div><div class="v">3,500</div><div class="n">hand-labelled upper teeth + inner lip</div></div>
+      <div class="tile"><div class="k">Training length</div><div class="v">200<span class="u"> epochs</span></div><div class="n">checkpoint kept at best validation IoU</div></div>
+      <div class="tile"><div class="k">LoRA rank</div><div class="v">16</div><div class="n">per attention block, on Q and V</div></div>
+    </div>
+
+    <div class="note" style="margin-top:16px">
+      <b>No patient appears on both sides of a split.</b> The photos were grouped by patient before
+      being divided, so every picture of a given person falls entirely in training or entirely in
+      validation — and the same holds for the held-out test set. Split naively, a model can score
+      well by recognising a mouth it has already been shown rather than by segmenting one it has
+      never seen.
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h4 class="mini">Augmentation</h4>
+      <div class="augwrap">
+        <figure class="plate">
+          <img src="assets/augmentations.jpg"
+               alt="One training sample under each augmentation in turn — original, resize, shift/scale/rotate, horizontal flip, colour jitter, Gaussian blur, Gaussian noise, random brightness/contrast — shown as image, overlay and mask.">
+          <figcaption style="font-size:.75rem;margin-top:10px">One sample through each transform.
+          Every row shows the photo, the mask over it, and the mask alone — the mask has to follow
+          the image through any geometric change.</figcaption>
+        </figure>
+        <div>
+          <p style="font-size:.875rem;color:var(--ink-2);margin-bottom:12px">Hand-annotating
+          photos is the expensive part, so the cheapest way to more training signal is to alter the
+          ones we already have. Each photo is randomly transformed every time it is seen, so the
+          model almost never gets the same input twice:</p>
+          <ul class="clean" style="font-size:.875rem;margin-bottom:20px">
+            <li><b>Shift / scale / rotate</b> — up to ±15° and ±10% zoom</li>
+            <li><b>Horizontal flip</b> — with the tooth labels re-mapped left↔right</li>
+            <li><b>Colour jitter</b> — brightness, contrast, saturation, hue</li>
+            <li><b>Blur and noise</b> — for phone-camera and lighting variation</li>
+          </ul>
+          <figure class="plate">
+            <img src="assets/horizontal_flip.jpg"
+                 alt="The same mouth before and after a horizontal flip, with the tooth mask beside it — after the flip the per-tooth colours are re-assigned so each tooth keeps its correct FDI label.">
+            <figcaption style="font-size:.75rem;margin-top:10px">The flip is the one augmentation
+            that cannot be applied blindly. Mirroring the photo swaps the patient's left and right
+            sides, so for instance tooth 13 ends up where tooth 23 belongs — the labels have to be re-mapped
+            with the image, or the model is taught the wrong tooth names.</figcaption>
+          </figure>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h4 class="mini">Objective — what the training actually minimises</h4>
+      <p style="font-size:.9375rem;color:var(--ink-2)">The training objective is computed pixel by pixel. While most pixels are classified correctly with little effort, the small number of pixels along tooth boundaries are much harder and have a greater impact on the perceived segmentation quality. The following loss functions place different emphasis on these challenging regions.</p>
+
+      <h5 class="block">Pixel-wise — scored one pixel at a time</h5>
+      <div class="losses">
+        <div class="loss">
+          <h5>Cross-entropy</h5>
+          <div class="math">CE = − log <i>p<sub>y</sub></i></div>
+          <p>The baseline, applied to one pixel at a time. <i>p<sub>y</sub></i> is the probability
+          the model assigned to that pixel's true class — the more confident and correct it is, the
+          smaller the loss. Every pixel counts the same, which is exactly the problem here.</p>
+        </div>
+        <div class="loss used">
+          <h5>Sigmoid focal loss <span class="tag">used</span></h5>
+          <div class="math">FL = − <i>α<sub>y</sub></i> (1 − <i>p<sub>y</sub></i>)<sup><i>γ</i></sup> log <i>p<sub>y</sub></i></div>
+          <p>Cross-entropy with an extra (1 − <i>p<sub>y</sub></i>)<sup><i>γ</i></sup> factor that
+          collapses to nearly zero on pixels already classified confidently. Training effort moves
+          to the hard ones — the tooth edges. We use <i>α</i> = 0.25, <i>γ</i> = 2.</p>
+          <a class="paper" href="https://arxiv.org/abs/1708.02002" target="_blank" rel="noopener">
+            Lin et al., 2017 →</a>
+        </div>
+        <div class="loss">
+          <h5>Poly loss</h5>
+          <div class="math">L = − log <i>p<sub>y</sub></i> + <i>ε</i> (1 − <i>p<sub>y</sub></i>)</div>
+          <p>Reads cross-entropy as an infinite polynomial and adds one adjustable term back on
+          top. A single parameter, <i>ε</i>, changes how steeply the loss reacts to a confident
+          mistake — a cheap way to tune what focal does by hand.</p>
+          <a class="paper" href="https://arxiv.org/abs/2204.12511" target="_blank" rel="noopener">
+            Leng et al., 2022 →</a>
+        </div>
+      </div>
+
+      <h5 class="block">Boundary-aware — scored on the shape of the outline</h5>
+      <div class="losses pair">
+        <div class="loss">
+          <h5>Boundary loss</h5>
+          <figure class="diag">
+            <img src="assets/hausdorff_loss.png"
+                 alt="Two contours, the predicted outline and the ground-truth outline, with the distance between them measured either point by point along the boundary or as an integral over the region between the two.">
+          </figure>
+          <p>Instead of counting wrong pixels, it measures the <em>distance</em> between the
+          predicted outline and the true one. The figure shows the two ways to do that:
+          <b>differentially</b>, walking along the boundary and measuring the gap at each point, or
+          <b>integrally</b>, over the whole area caught between the two outlines. Either way, a
+          pixel far from the true edge costs more than one close to it.</p>
+          <a class="paper" href="https://arxiv.org/abs/1812.07032" target="_blank" rel="noopener">
+            Kervadec et al., 2018 →</a>
+        </div>
+        <div class="loss">
+          <h5>Hausdorff loss</h5>
+          <figure class="diag">
+            <img src="assets/boundary_loss.png"
+                 alt="The Hausdorff distance between two closed curves: for each point on one curve the nearest point on the other is found, and the largest of those distances is taken.">
+          </figure>
+          <p>Targets the <em>worst</em> error rather than the average: for every point on one
+          outline it finds the nearest point on the other, and penalises the largest such gap. It
+          judges a mask by its single worst mistake, so one patch left in the wrong place cannot
+          hide behind thousands of correct pixels the way it does with a pixel-wise loss.</p>
+          <a class="paper" href="https://arxiv.org/pdf/1904.10030" target="_blank" rel="noopener">
+            Karimi &amp; Salcudean, 2019 →</a>
+        </div>
+      </div>
+
+      <h5 class="block">Class weighting</h5>
+      <div class="grid g2" style="align-items:start;gap:24px">
+        <p style="font-size:.875rem;color:var(--ink-2)">Whichever loss is used, each class is weighted according to how frequently it appears in the dataset. Rare classes receive larger weights so that common front teeth do not dominate the learning process. As shown in the chart, the rarest teeth receive substantially larger weights because they appear in very few training images. Without class weighting, errors on these teeth would contribute little to the loss, encouraging the model to focus primarily on the more common classes.</p>
+        <figure class="plate">
+          <img src="assets/class_weights.png"
+               alt="Bar chart of per-class loss weights: background and the front teeth sit near zero, and the weight rises steadily towards the back teeth, whose bars are far taller than the rest.">
+        </figure>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="numbers">
+  <div class="wrap">
+    <div class="shead"><div class="num">05</div><h2>Size and speed</h2>
+    <p>Measured using the final trained models with a 512×512 input resolution.</p></div>
+    <div class="tscroll card" style="padding:6px 8px">
+      <table>
+        <thead><tr><th>Measurement</th><th>Upper teeth</th><th>Inner lip</th></tr></thead>
+        <tbody><tr><td>Total parameters</td><td>22,484,658</td><td>22,482,557</td></tr><tr><td>Parameters trained by us</td><td>588,594</td><td>586,493</td></tr><tr><td>Model size (float32)</td><td>85.77 MB</td><td>85.76 MB</td></tr><tr><td>GPU time per image <small>(RTX 4090, batch 1)</small></td><td class=on>5.0 ms</td><td class=on>5.0 ms</td></tr><tr><td>GPU throughput <small>(batch 1)</small></td><td>201 img/s</td><td>200 img/s</td></tr><tr><td>GPU throughput <small>(batch 8)</small></td><td>304 img/s</td><td>308 img/s</td></tr><tr><td>Peak GPU memory <small>(batch 1)</small></td><td>117 MB</td><td>119 MB</td></tr><tr><td>CPU time per image <small>(i9-13900KF)</small></td><td>103 ms</td><td>103 ms</td></tr><tr><td>CPU throughput</td><td>9.7 img/s</td><td>9.7 img/s</td></tr></tbody>
+      </table>
+    </div>
+    <div class="note" style="margin-top:20px">
+      <b>Why the two differ by 2,101 parameters.</b> The number of classes affects only the decoder's final layer, which has one output channel for each class. The encoder, the LoRA
+      adapters and the rest of the decoder are identical, which is also why the two models are the
+      same size and take the same time to run.
+    </div>
+    <div class="note" style="margin-top:12px">
+      <b>How these were measured.</b> Pure forward pass, warmed up, best of
+      300 runs on GPU and 30 on CPU;
+      image loading and resizing are not included.
+    </div>
+  </div>
+</section>
+
+<section id="accuracy">
+  <div class="wrap">
+    <div class="shead"><div class="num">06</div><h2>How well does it segment?</h2>
+    <p>Every one of the 440 annotated test photos was run through both models and compared
+    against the human annotation. The score is <b>IoU</b> (intersection over union): it measures how much the predicted mask overlaps the human annotation.
+    100% is a perfect match; anything above about 90% is visually indistinguishable at a glance.</p></div>
+
+    <div class="grid g4" style="margin-bottom:32px">
+      <div class="tile"><div class="k">Upper teeth — region</div><div class="v">96.3<span class="u">%</span></div><div class="n">all teeth treated as one region</div></div>
+      <div class="tile"><div class="k">Upper teeth — per tooth</div><div class="v">92.7<span class="u">%</span></div><div class="n">averaged over the 12 tooth classes</div></div>
+      <div class="tile"><div class="k">Inner lip</div><div class="v">96.6<span class="u">%</span></div><div class="n">the mouth opening, a single region</div></div>
+    </div>
+
+    <div class="card" style="margin-bottom:32px">
+      <h4 class="mini">How these three are computed</h4>
+      <p style="font-size:.875rem;color:var(--ink-2)">Each prediction is compared with the human
+      annotation pixel by pixel. The shared pixels and the combined area are added up across all
+      440 photos, and the division happens once at the end, resulting in one IoU for the whole test set rather than one IoU per photo followed by averaging.</p>
+      <ul class="clean" style="font-size:.875rem;margin-top:12px">
+        <li><b>Upper teeth — region</b> merges the 12 teeth into a single
+        tooth / not-tooth mask. It asks only whether the teeth were found, ignoring which is which.</li>
+        <li><b>Upper teeth — per tooth</b> runs that same calculation separately for each of the
+        12 teeth and averages the 12 results
+        equally. It therefore also demands the correct identity: a tooth found but labelled 14
+        instead of 13 is counted wrong twice, once against each class. This additional requirement reduces the score from 96.3% to 92.7%, reflecting the difficulty of assigning the correct tooth identity.</li>
+        <li><b>Inner lip</b> has a single class, so both calculations give the same number.</li>
+      </ul>
+    </div>
+
+    <div class="grid g2">
+      <div class="card">
+        <h3 class="sub">IoU per individual tooth</h3>
+        <p style="font-size:.875rem;color:var(--ink-2);margin-bottom:20px">Front teeth are large,
+        always visible and score highest. The back teeth (16, 26) are the hardest: they appear in
+        only about a quarter of the photos and are often only partially visible.</p>
+        <figure><div class="bars"><div class="hd" style="text-align:right">Tooth</div><div class="hd"></div><div class="hd" style="text-align:right">IoU</div><div class="hd" style="text-align:right">Photos</div><div class="lbl">11</div><div class="track"><div class="fill" style="width:97.0%"></div></div><div class="val">97.0%</div><div class="cnt">437</div><div class="lbl">12</div><div class="track"><div class="fill" style="width:95.4%"></div></div><div class="val">95.4%</div><div class="cnt">427</div><div class="lbl">13</div><div class="track"><div class="fill" style="width:95.6%"></div></div><div class="val">95.6%</div><div class="cnt">355</div><div class="lbl">14</div><div class="track"><div class="fill" style="width:94.3%"></div></div><div class="val">94.3%</div><div class="cnt">301</div><div class="lbl">15</div><div class="track"><div class="fill" style="width:90.2%"></div></div><div class="val">90.2%</div><div class="cnt">250</div><div class="lbl">16</div><div class="track"><div class="fill" style="width:83.4%"></div></div><div class="val">83.4%</div><div class="cnt">131</div><div class="sep"></div><div class="lbl">21</div><div class="track"><div class="fill" style="width:97.0%"></div></div><div class="val">97.0%</div><div class="cnt">439</div><div class="lbl">22</div><div class="track"><div class="fill" style="width:95.5%"></div></div><div class="val">95.5%</div><div class="cnt">413</div><div class="lbl">23</div><div class="track"><div class="fill" style="width:95.5%"></div></div><div class="val">95.5%</div><div class="cnt">352</div><div class="lbl">24</div><div class="track"><div class="fill" style="width:94.1%"></div></div><div class="val">94.1%</div><div class="cnt">289</div><div class="lbl">25</div><div class="track"><div class="fill" style="width:89.6%"></div></div><div class="val">89.6%</div><div class="cnt">240</div><div class="lbl">26</div><div class="track"><div class="fill" style="width:84.2%"></div></div><div class="val">84.2%</div><div class="cnt">106</div><div class="axis"><span>0%</span><span>50%</span><span>100%</span></div></div>
+          <figcaption>The right-hand column
+          is how many of the 440 photos show that tooth.</figcaption>
+        </figure>
+      </div>
+      <div class="card">
+        <h3 class="sub">Consistency across photos</h3>
+        <p style="font-size:.875rem;color:var(--ink-2);margin-bottom:20px">A single pooled number
+        can hide a handful of bad photos. So here the region IoU score is computed <em>separately for
+        each of the 440 photos</em>, and every bar counts how many photos landed in that range. Instead of overall performance, this shows how reliably the model performs on individual photos.</p>
+        <figure><div class="hist"><div class="b" data-n="0" style="height:2%" data-t="50-52% IoU · 0 images"></div><div class="b" data-n="0" style="height:2%" data-t="52-55% IoU · 0 images"></div><div class="b" data-n="0" style="height:2%" data-t="55-57% IoU · 0 images"></div><div class="b" data-n="0" style="height:2%" data-t="57-60% IoU · 0 images"></div><div class="b" data-n="0" style="height:2%" data-t="60-62% IoU · 0 images"></div><div class="b" data-n="0" style="height:2%" data-t="62-65% IoU · 0 images"></div><div class="b" data-n="0" style="height:2%" data-t="65-68% IoU · 0 images"></div><div class="b" data-n="0" style="height:2%" data-t="68-70% IoU · 0 images"></div><div class="b" data-n="2" style="height:2%" data-t="70-72% IoU · 2 images"></div><div class="b" data-n="0" style="height:2%" data-t="72-75% IoU · 0 images"></div><div class="b" data-n="1" style="height:2%" data-t="75-78% IoU · 1 image"></div><div class="b" data-n="3" style="height:2%" data-t="78-80% IoU · 3 images"></div><div class="b" data-n="0" style="height:2%" data-t="80-82% IoU · 0 images"></div><div class="b" data-n="0" style="height:2%" data-t="82-85% IoU · 0 images"></div><div class="b" data-n="1" style="height:2%" data-t="85-88% IoU · 1 image"></div><div class="b" data-n="7" style="height:3%" data-t="88-90% IoU · 7 images"></div><div class="b" data-n="23" style="height:11%" data-t="90-92% IoU · 23 images"></div><div class="b" data-n="54" style="height:25%" data-t="92-95% IoU · 54 images"></div><div class="b" data-n="219" style="height:100%" data-t="95-98% IoU · 219 images"></div><div class="b" data-n="130" style="height:59%" data-t="98-100% IoU · 130 images"></div></div><div class="axis"><span>50%</span><span>75%</span><span>100%</span></div>
+          <figcaption>Upper teeth. Half the photos score above
+          97.1%, but the tail is not empty: 14 of the 440 fall
+          below 90%, and the weakest scores 70.2%. Hover a bar for its count.</figcaption>
+        </figure>
+        <h4 class="mini" style="margin-top:28px">Inner lip</h4>
+        <figure><div class="hist"><div class="b" data-n="0" style="height:2%" data-t="50-52% IoU · 0 images"></div><div class="b" data-n="0" style="height:2%" data-t="52-55% IoU · 0 images"></div><div class="b" data-n="0" style="height:2%" data-t="55-57% IoU · 0 images"></div><div class="b" data-n="0" style="height:2%" data-t="57-60% IoU · 0 images"></div><div class="b" data-n="0" style="height:2%" data-t="60-62% IoU · 0 images"></div><div class="b" data-n="0" style="height:2%" data-t="62-65% IoU · 0 images"></div><div class="b" data-n="0" style="height:2%" data-t="65-68% IoU · 0 images"></div><div class="b" data-n="0" style="height:2%" data-t="68-70% IoU · 0 images"></div><div class="b" data-n="0" style="height:2%" data-t="70-72% IoU · 0 images"></div><div class="b" data-n="0" style="height:2%" data-t="72-75% IoU · 0 images"></div><div class="b" data-n="0" style="height:2%" data-t="75-78% IoU · 0 images"></div><div class="b" data-n="0" style="height:2%" data-t="78-80% IoU · 0 images"></div><div class="b" data-n="0" style="height:2%" data-t="80-82% IoU · 0 images"></div><div class="b" data-n="0" style="height:2%" data-t="82-85% IoU · 0 images"></div><div class="b" data-n="1" style="height:2%" data-t="85-88% IoU · 1 image"></div><div class="b" data-n="1" style="height:2%" data-t="88-90% IoU · 1 image"></div><div class="b" data-n="3" style="height:2%" data-t="90-92% IoU · 3 images"></div><div class="b" data-n="41" style="height:12%" data-t="92-95% IoU · 41 images"></div><div class="b" data-n="328" style="height:100%" data-t="95-98% IoU · 328 images"></div><div class="b" data-n="66" style="height:20%" data-t="98-100% IoU · 66 images"></div></div><div class="axis"><span>50%</span><span>75%</span><span>100%</span></div>
+          <figcaption>Tighter still — half above 96.6%, and the weakest
+          photo of the 440 scores 86.2%.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <div class="note" style="margin-top:16px">
+      <b>What this measures.</b> These 440 photos are a held-out test set: they were kept aside
+      and never used to train either model, so every number here is measured on patients the
+      models had not seen. This is generalisation, not recall of the training data.
+    </div>
+  </div>
+</section>
+
+<section id="results">
+  <div class="wrap">
+    <div class="shead"><div class="num">07</div><h2>See it for yourself</h2>
+    <p>Input photo, the GT human annotation, and the model's prediction — side by side. Samples are drawn evenly across the whole IoU range and ordered
+    best to hardest.
+    Click any sample to see it full size.</p></div>
+
+    <div class="gbar">
+      <div class="tabs" role="tablist">
+        <button role="tab" aria-selected="true" data-tab="teeth">Upper teeth</button>
+        <button role="tab" aria-selected="false" data-tab="lip">Inner lip</button>
+      </div>
+      <div class="gnote">60 of 440 test photos shown ·
+        IoU figures above cover all 440</div>
+    </div>
+
+    <div data-panel="teeth">
+      <div class="key"><span class="sw"><i style="background:rgb(255,87,87)"></i>11</span><span class="sw"><i style="background:rgb(255,140,66)"></i>12</span><span class="sw"><i style="background:rgb(255,193,59)"></i>13</span><span class="sw"><i style="background:rgb(214,222,45)"></i>14</span><span class="sw"><i style="background:rgb(130,214,82)"></i>15</span><span class="sw"><i style="background:rgb(46,196,148)"></i>16</span><span class="sw"><i style="background:rgb(86,204,242)"></i>21</span><span class="sw"><i style="background:rgb(66,153,245)"></i>22</span><span class="sw"><i style="background:rgb(108,122,244)"></i>23</span><span class="sw"><i style="background:rgb(163,106,240)"></i>24</span><span class="sw"><i style="background:rgb(219,99,224)"></i>25</span><span class="sw"><i style="background:rgb(247,92,158)"></i>26</span></div>
+      <div style="height:18px"></div>
+      <div class="gal" id="gal-teeth" data-shown="9"><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_86ff7b956d8dbd11_5233_3675" data-iou="98.5" title="Click to enlarge"><figure><img src="assets/samples/teeth_86ff7b956d8dbd11_5233_3675_in.jpg" alt="Input photo"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_86ff7b956d8dbd11_5233_3675_gt.jpg" alt="Human annotation"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_86ff7b956d8dbd11_5233_3675_pr.jpg" alt="Model prediction"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">98.5% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_f1ee35a98b710068_3459_2891" data-iou="98.2" title="Click to enlarge"><figure><img src="assets/samples/teeth_f1ee35a98b710068_3459_2891_in.jpg" alt="Input photo"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_f1ee35a98b710068_3459_2891_gt.jpg" alt="Human annotation"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_f1ee35a98b710068_3459_2891_pr.jpg" alt="Model prediction"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">98.2% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_faf3868f05605052_3495_3165" data-iou="98.1" title="Click to enlarge"><figure><img src="assets/samples/teeth_faf3868f05605052_3495_3165_in.jpg" alt="Input photo"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_faf3868f05605052_3495_3165_gt.jpg" alt="Human annotation"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_faf3868f05605052_3495_3165_pr.jpg" alt="Model prediction"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">98.1% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_fe85877f807fe5fc_2936_3235" data-iou="98.0" title="Click to enlarge"><figure><img src="assets/samples/teeth_fe85877f807fe5fc_2936_3235_in.jpg" alt="Input photo"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_fe85877f807fe5fc_2936_3235_gt.jpg" alt="Human annotation"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_fe85877f807fe5fc_2936_3235_pr.jpg" alt="Model prediction"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">98.0% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_241e6e8cfb799d43_5331_2821" data-iou="98.0" title="Click to enlarge"><figure><img src="assets/samples/teeth_241e6e8cfb799d43_5331_2821_in.jpg" alt="Input photo"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_241e6e8cfb799d43_5331_2821_gt.jpg" alt="Human annotation"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_241e6e8cfb799d43_5331_2821_pr.jpg" alt="Model prediction"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">98.0% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_5b31d0ec1ad94334_3318_3157" data-iou="97.9" title="Click to enlarge"><figure><img src="assets/samples/teeth_5b31d0ec1ad94334_3318_3157_in.jpg" alt="Input photo"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_5b31d0ec1ad94334_3318_3157_gt.jpg" alt="Human annotation"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_5b31d0ec1ad94334_3318_3157_pr.jpg" alt="Model prediction"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.9% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_d724e8abad238eda_3855_3235" data-iou="97.9" title="Click to enlarge"><figure><img src="assets/samples/teeth_d724e8abad238eda_3855_3235_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_d724e8abad238eda_3855_3235_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_d724e8abad238eda_3855_3235_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.9% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_1b03e6633c1e107a_3921_3485" data-iou="97.8" title="Click to enlarge"><figure><img src="assets/samples/teeth_1b03e6633c1e107a_3921_3485_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_1b03e6633c1e107a_3921_3485_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_1b03e6633c1e107a_3921_3485_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.8% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_7a9c67a04b779603_3705_3264" data-iou="97.8" title="Click to enlarge"><figure><img src="assets/samples/teeth_7a9c67a04b779603_3705_3264_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_7a9c67a04b779603_3705_3264_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_7a9c67a04b779603_3705_3264_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.8% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_7f3794ff4687e68b_4169_3147" data-iou="97.8" title="Click to enlarge"><figure><img src="assets/samples/teeth_7f3794ff4687e68b_4169_3147_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_7f3794ff4687e68b_4169_3147_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_7f3794ff4687e68b_4169_3147_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.8% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_384dfea8c251522e_3645_3031" data-iou="97.8" title="Click to enlarge"><figure><img src="assets/samples/teeth_384dfea8c251522e_3645_3031_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_384dfea8c251522e_3645_3031_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_384dfea8c251522e_3645_3031_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.8% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_7a8288f47bc0c399_3197_3444" data-iou="97.7" title="Click to enlarge"><figure><img src="assets/samples/teeth_7a8288f47bc0c399_3197_3444_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_7a8288f47bc0c399_3197_3444_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_7a8288f47bc0c399_3197_3444_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.7% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_7813b9baa7f5fe25_4065_3049" data-iou="97.7" title="Click to enlarge"><figure><img src="assets/samples/teeth_7813b9baa7f5fe25_4065_3049_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_7813b9baa7f5fe25_4065_3049_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_7813b9baa7f5fe25_4065_3049_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.7% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_cf2752e2299530be_3481_3365" data-iou="97.6" title="Click to enlarge"><figure><img src="assets/samples/teeth_cf2752e2299530be_3481_3365_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_cf2752e2299530be_3481_3365_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_cf2752e2299530be_3481_3365_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.6% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_6a83dd84a1d7b409_4130_3228" data-iou="97.6" title="Click to enlarge"><figure><img src="assets/samples/teeth_6a83dd84a1d7b409_4130_3228_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_6a83dd84a1d7b409_4130_3228_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_6a83dd84a1d7b409_4130_3228_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.6% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_04150783dc0f7a35_662_1564" data-iou="97.6" title="Click to enlarge"><figure><img src="assets/samples/teeth_04150783dc0f7a35_662_1564_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_04150783dc0f7a35_662_1564_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_04150783dc0f7a35_662_1564_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.6% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_3d0d6746710ea740_2141_4165" data-iou="97.5" title="Click to enlarge"><figure><img src="assets/samples/teeth_3d0d6746710ea740_2141_4165_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_3d0d6746710ea740_2141_4165_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_3d0d6746710ea740_2141_4165_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.5% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_bbbfa9512565b2de_3945_3650" data-iou="97.5" title="Click to enlarge"><figure><img src="assets/samples/teeth_bbbfa9512565b2de_3945_3650_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_bbbfa9512565b2de_3945_3650_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_bbbfa9512565b2de_3945_3650_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.5% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_d192bf3146295af2_4159_3468" data-iou="97.5" title="Click to enlarge"><figure><img src="assets/samples/teeth_d192bf3146295af2_4159_3468_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_d192bf3146295af2_4159_3468_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_d192bf3146295af2_4159_3468_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.5% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_2920f13029a8c728_3876_2679" data-iou="97.5" title="Click to enlarge"><figure><img src="assets/samples/teeth_2920f13029a8c728_3876_2679_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_2920f13029a8c728_3876_2679_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_2920f13029a8c728_3876_2679_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.5% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_483db0cf2f1cbfea_3725_3064" data-iou="97.4" title="Click to enlarge"><figure><img src="assets/samples/teeth_483db0cf2f1cbfea_3725_3064_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_483db0cf2f1cbfea_3725_3064_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_483db0cf2f1cbfea_3725_3064_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.4% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_8f5b7c0c5783728c_4255_3532" data-iou="97.4" title="Click to enlarge"><figure><img src="assets/samples/teeth_8f5b7c0c5783728c_4255_3532_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_8f5b7c0c5783728c_4255_3532_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_8f5b7c0c5783728c_4255_3532_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.4% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_0549e072bdf5a38a_4220_3435" data-iou="97.4" title="Click to enlarge"><figure><img src="assets/samples/teeth_0549e072bdf5a38a_4220_3435_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_0549e072bdf5a38a_4220_3435_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_0549e072bdf5a38a_4220_3435_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.4% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_f0469eb5b43a32b6_3713_3200" data-iou="97.3" title="Click to enlarge"><figure><img src="assets/samples/teeth_f0469eb5b43a32b6_3713_3200_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_f0469eb5b43a32b6_3713_3200_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_f0469eb5b43a32b6_3713_3200_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.3% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_6f6cdf1eaf7332c9_1998_4238" data-iou="97.3" title="Click to enlarge"><figure><img src="assets/samples/teeth_6f6cdf1eaf7332c9_1998_4238_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_6f6cdf1eaf7332c9_1998_4238_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_6f6cdf1eaf7332c9_1998_4238_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.3% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_0d939cf72d221eb4_3340_3096" data-iou="97.3" title="Click to enlarge"><figure><img src="assets/samples/teeth_0d939cf72d221eb4_3340_3096_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_0d939cf72d221eb4_3340_3096_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_0d939cf72d221eb4_3340_3096_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.3% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_59dff10560ecde9f_3468_3171" data-iou="97.3" title="Click to enlarge"><figure><img src="assets/samples/teeth_59dff10560ecde9f_3468_3171_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_59dff10560ecde9f_3468_3171_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_59dff10560ecde9f_3468_3171_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.3% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_d4fe6d49fda2ebac_4330_2999" data-iou="97.2" title="Click to enlarge"><figure><img src="assets/samples/teeth_d4fe6d49fda2ebac_4330_2999_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_d4fe6d49fda2ebac_4330_2999_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_d4fe6d49fda2ebac_4330_2999_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.2% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_4cc4895eb8eef33a_4427_2724" data-iou="97.2" title="Click to enlarge"><figure><img src="assets/samples/teeth_4cc4895eb8eef33a_4427_2724_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_4cc4895eb8eef33a_4427_2724_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_4cc4895eb8eef33a_4427_2724_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.2% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_de64ea7f5fd073cc_3415_2650" data-iou="97.2" title="Click to enlarge"><figure><img src="assets/samples/teeth_de64ea7f5fd073cc_3415_2650_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_de64ea7f5fd073cc_3415_2650_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_de64ea7f5fd073cc_3415_2650_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.2% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_4b073b894eb54630_4017_3597" data-iou="97.1" title="Click to enlarge"><figure><img src="assets/samples/teeth_4b073b894eb54630_4017_3597_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_4b073b894eb54630_4017_3597_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_4b073b894eb54630_4017_3597_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.1% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_18f113d45e8b6710_4660_3157" data-iou="97.1" title="Click to enlarge"><figure><img src="assets/samples/teeth_18f113d45e8b6710_4660_3157_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_18f113d45e8b6710_4660_3157_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_18f113d45e8b6710_4660_3157_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.1% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_70cdce1e2761c06b_3312_3176" data-iou="97.0" title="Click to enlarge"><figure><img src="assets/samples/teeth_70cdce1e2761c06b_3312_3176_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_70cdce1e2761c06b_3312_3176_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_70cdce1e2761c06b_3312_3176_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.0% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_19bfb360a646f452_3584_3477" data-iou="97.0" title="Click to enlarge"><figure><img src="assets/samples/teeth_19bfb360a646f452_3584_3477_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_19bfb360a646f452_3584_3477_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_19bfb360a646f452_3584_3477_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.0% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_f77dbe72e7202858_3601_2662" data-iou="96.9" title="Click to enlarge"><figure><img src="assets/samples/teeth_f77dbe72e7202858_3601_2662_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_f77dbe72e7202858_3601_2662_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_f77dbe72e7202858_3601_2662_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.9% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_7f05f16aa9e0d74e_3676_2560" data-iou="96.9" title="Click to enlarge"><figure><img src="assets/samples/teeth_7f05f16aa9e0d74e_3676_2560_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_7f05f16aa9e0d74e_3676_2560_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_7f05f16aa9e0d74e_3676_2560_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.9% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_09159a68f6594765_3624_2862" data-iou="96.8" title="Click to enlarge"><figure><img src="assets/samples/teeth_09159a68f6594765_3624_2862_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_09159a68f6594765_3624_2862_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_09159a68f6594765_3624_2862_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.8% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_23f70713af36d8c3_2270_4496" data-iou="96.8" title="Click to enlarge"><figure><img src="assets/samples/teeth_23f70713af36d8c3_2270_4496_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_23f70713af36d8c3_2270_4496_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_23f70713af36d8c3_2270_4496_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.8% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_f4ada5ce32d273bf_754_1753" data-iou="96.7" title="Click to enlarge"><figure><img src="assets/samples/teeth_f4ada5ce32d273bf_754_1753_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_f4ada5ce32d273bf_754_1753_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_f4ada5ce32d273bf_754_1753_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.7% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_dbdf7dca126dc00d_3634_3064" data-iou="96.7" title="Click to enlarge"><figure><img src="assets/samples/teeth_dbdf7dca126dc00d_3634_3064_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_dbdf7dca126dc00d_3634_3064_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_dbdf7dca126dc00d_3634_3064_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.7% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_81bcac8872bb8759_2311_1719" data-iou="96.6" title="Click to enlarge"><figure><img src="assets/samples/teeth_81bcac8872bb8759_2311_1719_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_81bcac8872bb8759_2311_1719_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_81bcac8872bb8759_2311_1719_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.6% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_39db8414814ae8ea_3854_3289" data-iou="96.6" title="Click to enlarge"><figure><img src="assets/samples/teeth_39db8414814ae8ea_3854_3289_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_39db8414814ae8ea_3854_3289_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_39db8414814ae8ea_3854_3289_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.6% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_9a9fdf8696b75ae0_2199_4570" data-iou="96.5" title="Click to enlarge"><figure><img src="assets/samples/teeth_9a9fdf8696b75ae0_2199_4570_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_9a9fdf8696b75ae0_2199_4570_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_9a9fdf8696b75ae0_2199_4570_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.5% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_32f92b85d4cb1dc0_3629_2219" data-iou="96.4" title="Click to enlarge"><figure><img src="assets/samples/teeth_32f92b85d4cb1dc0_3629_2219_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_32f92b85d4cb1dc0_3629_2219_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_32f92b85d4cb1dc0_3629_2219_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.4% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_7b12be5454346890_3655_2845" data-iou="96.3" title="Click to enlarge"><figure><img src="assets/samples/teeth_7b12be5454346890_3655_2845_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_7b12be5454346890_3655_2845_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_7b12be5454346890_3655_2845_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.3% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_fdd3fb32333a32ad_3994_3435" data-iou="96.1" title="Click to enlarge"><figure><img src="assets/samples/teeth_fdd3fb32333a32ad_3994_3435_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_fdd3fb32333a32ad_3994_3435_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_fdd3fb32333a32ad_3994_3435_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.1% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_8b84cedd967b303b_4311_3157" data-iou="95.5" title="Click to enlarge"><figure><img src="assets/samples/teeth_8b84cedd967b303b_4311_3157_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_8b84cedd967b303b_4311_3157_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_8b84cedd967b303b_4311_3157_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">95.5% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_75fa01dc6ba82f5a_3794_2386" data-iou="94.9" title="Click to enlarge"><figure><img src="assets/samples/teeth_75fa01dc6ba82f5a_3794_2386_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_75fa01dc6ba82f5a_3794_2386_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_75fa01dc6ba82f5a_3794_2386_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">94.9% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_c244134094793206_3732_2898" data-iou="94.6" title="Click to enlarge"><figure><img src="assets/samples/teeth_c244134094793206_3732_2898_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_c244134094793206_3732_2898_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_c244134094793206_3732_2898_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">94.6% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_62cdc01f87835ca0_3301_3287" data-iou="94.2" title="Click to enlarge"><figure><img src="assets/samples/teeth_62cdc01f87835ca0_3301_3287_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_62cdc01f87835ca0_3301_3287_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_62cdc01f87835ca0_3301_3287_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">94.2% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_905d07c56bf45413_5321_2776" data-iou="93.9" title="Click to enlarge"><figure><img src="assets/samples/teeth_905d07c56bf45413_5321_2776_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_905d07c56bf45413_5321_2776_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_905d07c56bf45413_5321_2776_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">93.9% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_32d96b230034ac9e_2038_2212" data-iou="93.6" title="Click to enlarge"><figure><img src="assets/samples/teeth_32d96b230034ac9e_2038_2212_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_32d96b230034ac9e_2038_2212_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_32d96b230034ac9e_2038_2212_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">93.6% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_7dd9aff6549e4ad1_4280_3489" data-iou="93.3" title="Click to enlarge"><figure><img src="assets/samples/teeth_7dd9aff6549e4ad1_4280_3489_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_7dd9aff6549e4ad1_4280_3489_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_7dd9aff6549e4ad1_4280_3489_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">93.3% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_0bd58ed6f10e1571_3255_3610" data-iou="92.9" title="Click to enlarge"><figure><img src="assets/samples/teeth_0bd58ed6f10e1571_3255_3610_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_0bd58ed6f10e1571_3255_3610_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_0bd58ed6f10e1571_3255_3610_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">92.9% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_0548f5fe912a890a_2332_4375" data-iou="92.6" title="Click to enlarge"><figure><img src="assets/samples/teeth_0548f5fe912a890a_2332_4375_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_0548f5fe912a890a_2332_4375_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_0548f5fe912a890a_2332_4375_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">92.6% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_12b7ae29fda3056d_3987_3256" data-iou="92.3" title="Click to enlarge"><figure><img src="assets/samples/teeth_12b7ae29fda3056d_3987_3256_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_12b7ae29fda3056d_3987_3256_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_12b7ae29fda3056d_3987_3256_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">92.3% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_414630b535249e0b_3598_2822" data-iou="91.4" title="Click to enlarge"><figure><img src="assets/samples/teeth_414630b535249e0b_3598_2822_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_414630b535249e0b_3598_2822_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_414630b535249e0b_3598_2822_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">91.4% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_ede5d9f7bd6b9865_3061_3593" data-iou="90.7" title="Click to enlarge"><figure><img src="assets/samples/teeth_ede5d9f7bd6b9865_3061_3593_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_ede5d9f7bd6b9865_3061_3593_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_ede5d9f7bd6b9865_3061_3593_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">90.7% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_4a4e639de2b121a0_3753_2874" data-iou="88.6" title="Click to enlarge"><figure><img src="assets/samples/teeth_4a4e639de2b121a0_3753_2874_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_4a4e639de2b121a0_3753_2874_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_4a4e639de2b121a0_3753_2874_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">88.6% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/teeth_1f1d3c7bf87aba85_4049_3198" data-iou="70.2" title="Click to enlarge"><figure><img src="assets/samples/teeth_1f1d3c7bf87aba85_4049_3198_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/teeth_1f1d3c7bf87aba85_4049_3198_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/teeth_1f1d3c7bf87aba85_4049_3198_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">70.2% <s>IoU</s></span></div></article></div><button class="more" data-gal="teeth">Show more samples</button>
+    </div>
+    <div data-panel="lip" hidden>
+      <div class="key"><span class="sw"><i style="background:rgb(46,220,130)"></i>inner lip</span></div>
+      <div style="height:18px"></div>
+      <div class="gal" id="gal-lip" data-shown="9"><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_e993da05e136e6ce_2636_1901" data-iou="98.6" title="Click to enlarge"><figure><img src="assets/samples/lip_e993da05e136e6ce_2636_1901_in.jpg" alt="Input photo"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_e993da05e136e6ce_2636_1901_gt.jpg" alt="Human annotation"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_e993da05e136e6ce_2636_1901_pr.jpg" alt="Model prediction"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">98.6% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_82f60d60b47c4437_2535_2174" data-iou="98.1" title="Click to enlarge"><figure><img src="assets/samples/lip_82f60d60b47c4437_2535_2174_in.jpg" alt="Input photo"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_82f60d60b47c4437_2535_2174_gt.jpg" alt="Human annotation"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_82f60d60b47c4437_2535_2174_pr.jpg" alt="Model prediction"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">98.1% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_46c4cb3909b311bc_3580_2932" data-iou="97.9" title="Click to enlarge"><figure><img src="assets/samples/lip_46c4cb3909b311bc_3580_2932_in.jpg" alt="Input photo"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_46c4cb3909b311bc_3580_2932_gt.jpg" alt="Human annotation"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_46c4cb3909b311bc_3580_2932_pr.jpg" alt="Model prediction"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.9% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_427d95c771561102_3571_3190" data-iou="97.8" title="Click to enlarge"><figure><img src="assets/samples/lip_427d95c771561102_3571_3190_in.jpg" alt="Input photo"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_427d95c771561102_3571_3190_gt.jpg" alt="Human annotation"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_427d95c771561102_3571_3190_pr.jpg" alt="Model prediction"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.8% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_b692afa82fd6f3fc_3671_3278" data-iou="97.7" title="Click to enlarge"><figure><img src="assets/samples/lip_b692afa82fd6f3fc_3671_3278_in.jpg" alt="Input photo"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_b692afa82fd6f3fc_3671_3278_gt.jpg" alt="Human annotation"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_b692afa82fd6f3fc_3671_3278_pr.jpg" alt="Model prediction"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.7% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_aa4291617ec21281_3353_3459" data-iou="97.7" title="Click to enlarge"><figure><img src="assets/samples/lip_aa4291617ec21281_3353_3459_in.jpg" alt="Input photo"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_aa4291617ec21281_3353_3459_gt.jpg" alt="Human annotation"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_aa4291617ec21281_3353_3459_pr.jpg" alt="Model prediction"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.7% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_b5f15c09023844a7_3841_3594" data-iou="97.6" title="Click to enlarge"><figure><img src="assets/samples/lip_b5f15c09023844a7_3841_3594_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_b5f15c09023844a7_3841_3594_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_b5f15c09023844a7_3841_3594_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.6% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_b1510f9bbf939615_3236_3349" data-iou="97.6" title="Click to enlarge"><figure><img src="assets/samples/lip_b1510f9bbf939615_3236_3349_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_b1510f9bbf939615_3236_3349_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_b1510f9bbf939615_3236_3349_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.6% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_d032e744a6e169da_4048_2770" data-iou="97.5" title="Click to enlarge"><figure><img src="assets/samples/lip_d032e744a6e169da_4048_2770_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_d032e744a6e169da_4048_2770_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_d032e744a6e169da_4048_2770_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.5% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_80a2a6b8db663240_3612_3367" data-iou="97.5" title="Click to enlarge"><figure><img src="assets/samples/lip_80a2a6b8db663240_3612_3367_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_80a2a6b8db663240_3612_3367_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_80a2a6b8db663240_3612_3367_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.5% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_af6373d2b0c68a88_3377_3361" data-iou="97.4" title="Click to enlarge"><figure><img src="assets/samples/lip_af6373d2b0c68a88_3377_3361_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_af6373d2b0c68a88_3377_3361_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_af6373d2b0c68a88_3377_3361_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.4% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_391299932befaffd_2935_3276" data-iou="97.4" title="Click to enlarge"><figure><img src="assets/samples/lip_391299932befaffd_2935_3276_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_391299932befaffd_2935_3276_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_391299932befaffd_2935_3276_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.4% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_fe85877f807fe5fc_2936_3235" data-iou="97.3" title="Click to enlarge"><figure><img src="assets/samples/lip_fe85877f807fe5fc_2936_3235_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_fe85877f807fe5fc_2936_3235_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_fe85877f807fe5fc_2936_3235_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.3% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_19165ab2ba7f72f6_3263_3272" data-iou="97.3" title="Click to enlarge"><figure><img src="assets/samples/lip_19165ab2ba7f72f6_3263_3272_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_19165ab2ba7f72f6_3263_3272_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_19165ab2ba7f72f6_3263_3272_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.3% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_038a5b0de9ee6043_3589_3512" data-iou="97.2" title="Click to enlarge"><figure><img src="assets/samples/lip_038a5b0de9ee6043_3589_3512_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_038a5b0de9ee6043_3589_3512_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_038a5b0de9ee6043_3589_3512_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.2% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_46d740b7ad151339_3875_3368" data-iou="97.2" title="Click to enlarge"><figure><img src="assets/samples/lip_46d740b7ad151339_3875_3368_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_46d740b7ad151339_3875_3368_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_46d740b7ad151339_3875_3368_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.2% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_db0adf6eae4a5f08_4216_3230" data-iou="97.1" title="Click to enlarge"><figure><img src="assets/samples/lip_db0adf6eae4a5f08_4216_3230_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_db0adf6eae4a5f08_4216_3230_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_db0adf6eae4a5f08_4216_3230_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.1% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_8db4b246e6fa53b8_3998_2711" data-iou="97.1" title="Click to enlarge"><figure><img src="assets/samples/lip_8db4b246e6fa53b8_3998_2711_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_8db4b246e6fa53b8_3998_2711_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_8db4b246e6fa53b8_3998_2711_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.1% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_7b12be5454346890_3655_2845" data-iou="97.0" title="Click to enlarge"><figure><img src="assets/samples/lip_7b12be5454346890_3655_2845_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_7b12be5454346890_3655_2845_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_7b12be5454346890_3655_2845_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.0% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_41883fed3bb62806_3433_2827" data-iou="97.0" title="Click to enlarge"><figure><img src="assets/samples/lip_41883fed3bb62806_3433_2827_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_41883fed3bb62806_3433_2827_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_41883fed3bb62806_3433_2827_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.0% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_245a681e72de497e_4597_3222" data-iou="97.0" title="Click to enlarge"><figure><img src="assets/samples/lip_245a681e72de497e_4597_3222_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_245a681e72de497e_4597_3222_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_245a681e72de497e_4597_3222_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">97.0% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_adeb06266477a495_2898_3030" data-iou="96.9" title="Click to enlarge"><figure><img src="assets/samples/lip_adeb06266477a495_2898_3030_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_adeb06266477a495_2898_3030_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_adeb06266477a495_2898_3030_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.9% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_6ef929ed4244ad9c_3634_3376" data-iou="96.9" title="Click to enlarge"><figure><img src="assets/samples/lip_6ef929ed4244ad9c_3634_3376_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_6ef929ed4244ad9c_3634_3376_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_6ef929ed4244ad9c_3634_3376_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.9% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_36777654714fd637_3735_3349" data-iou="96.8" title="Click to enlarge"><figure><img src="assets/samples/lip_36777654714fd637_3735_3349_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_36777654714fd637_3735_3349_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_36777654714fd637_3735_3349_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.8% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_f95246443f63e08b_3528_3394" data-iou="96.8" title="Click to enlarge"><figure><img src="assets/samples/lip_f95246443f63e08b_3528_3394_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_f95246443f63e08b_3528_3394_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_f95246443f63e08b_3528_3394_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.8% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_fdd3fb32333a32ad_3994_3435" data-iou="96.7" title="Click to enlarge"><figure><img src="assets/samples/lip_fdd3fb32333a32ad_3994_3435_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_fdd3fb32333a32ad_3994_3435_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_fdd3fb32333a32ad_3994_3435_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.7% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_483db0cf2f1cbfea_3725_3064" data-iou="96.7" title="Click to enlarge"><figure><img src="assets/samples/lip_483db0cf2f1cbfea_3725_3064_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_483db0cf2f1cbfea_3725_3064_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_483db0cf2f1cbfea_3725_3064_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.7% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_1cdb5603f851edff_3625_2633" data-iou="96.6" title="Click to enlarge"><figure><img src="assets/samples/lip_1cdb5603f851edff_3625_2633_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_1cdb5603f851edff_3625_2633_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_1cdb5603f851edff_3625_2633_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.6% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_bdb343fbb55607c7_3784_3382" data-iou="96.6" title="Click to enlarge"><figure><img src="assets/samples/lip_bdb343fbb55607c7_3784_3382_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_bdb343fbb55607c7_3784_3382_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_bdb343fbb55607c7_3784_3382_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.6% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_7a678f5bb5986003_5169_3226" data-iou="96.6" title="Click to enlarge"><figure><img src="assets/samples/lip_7a678f5bb5986003_5169_3226_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_7a678f5bb5986003_5169_3226_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_7a678f5bb5986003_5169_3226_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.6% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_eb78006cfeb0c703_3467_2769" data-iou="96.6" title="Click to enlarge"><figure><img src="assets/samples/lip_eb78006cfeb0c703_3467_2769_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_eb78006cfeb0c703_3467_2769_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_eb78006cfeb0c703_3467_2769_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.6% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_34abe3c4094d56a3_2352_2752" data-iou="96.5" title="Click to enlarge"><figure><img src="assets/samples/lip_34abe3c4094d56a3_2352_2752_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_34abe3c4094d56a3_2352_2752_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_34abe3c4094d56a3_2352_2752_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.5% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_7a694e074e2601d4_3648_2722" data-iou="96.5" title="Click to enlarge"><figure><img src="assets/samples/lip_7a694e074e2601d4_3648_2722_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_7a694e074e2601d4_3648_2722_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_7a694e074e2601d4_3648_2722_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.5% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_a49a4ce075efa7f7_4682_3103" data-iou="96.4" title="Click to enlarge"><figure><img src="assets/samples/lip_a49a4ce075efa7f7_4682_3103_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_a49a4ce075efa7f7_4682_3103_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_a49a4ce075efa7f7_4682_3103_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.4% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_1b03e6633c1e107a_3921_3485" data-iou="96.4" title="Click to enlarge"><figure><img src="assets/samples/lip_1b03e6633c1e107a_3921_3485_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_1b03e6633c1e107a_3921_3485_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_1b03e6633c1e107a_3921_3485_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.4% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_e218a5c95af13bdf_2849_2903" data-iou="96.3" title="Click to enlarge"><figure><img src="assets/samples/lip_e218a5c95af13bdf_2849_2903_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_e218a5c95af13bdf_2849_2903_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_e218a5c95af13bdf_2849_2903_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.3% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_20b28332edc20afe_462_1624" data-iou="96.3" title="Click to enlarge"><figure><img src="assets/samples/lip_20b28332edc20afe_462_1624_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_20b28332edc20afe_462_1624_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_20b28332edc20afe_462_1624_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.3% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_5c07e9528dac825b_2125_4128" data-iou="96.2" title="Click to enlarge"><figure><img src="assets/samples/lip_5c07e9528dac825b_2125_4128_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_5c07e9528dac825b_2125_4128_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_5c07e9528dac825b_2125_4128_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.2% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_8db43c9b0571f15c_3784_2734" data-iou="96.2" title="Click to enlarge"><figure><img src="assets/samples/lip_8db43c9b0571f15c_3784_2734_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_8db43c9b0571f15c_3784_2734_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_8db43c9b0571f15c_3784_2734_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.2% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_71c91635a463eab5_3627_2942" data-iou="96.1" title="Click to enlarge"><figure><img src="assets/samples/lip_71c91635a463eab5_3627_2942_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_71c91635a463eab5_3627_2942_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_71c91635a463eab5_3627_2942_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.1% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_9f13d37e1cd31acb_1993_3005" data-iou="96.1" title="Click to enlarge"><figure><img src="assets/samples/lip_9f13d37e1cd31acb_1993_3005_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_9f13d37e1cd31acb_1993_3005_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_9f13d37e1cd31acb_1993_3005_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.1% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_3a2e1c866dd8a5f9_4044_3259" data-iou="96.1" title="Click to enlarge"><figure><img src="assets/samples/lip_3a2e1c866dd8a5f9_4044_3259_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_3a2e1c866dd8a5f9_4044_3259_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_3a2e1c866dd8a5f9_4044_3259_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.1% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_80053554e73a2fc8_3931_2951" data-iou="96.0" title="Click to enlarge"><figure><img src="assets/samples/lip_80053554e73a2fc8_3931_2951_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_80053554e73a2fc8_3931_2951_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_80053554e73a2fc8_3931_2951_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">96.0% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_5891ae5e23199947_3617_3309" data-iou="95.9" title="Click to enlarge"><figure><img src="assets/samples/lip_5891ae5e23199947_3617_3309_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_5891ae5e23199947_3617_3309_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_5891ae5e23199947_3617_3309_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">95.9% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_312a9114efe01f3f_3709_3404" data-iou="95.9" title="Click to enlarge"><figure><img src="assets/samples/lip_312a9114efe01f3f_3709_3404_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_312a9114efe01f3f_3709_3404_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_312a9114efe01f3f_3709_3404_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">95.9% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_46aa6879a4be9161_3280_2867" data-iou="95.8" title="Click to enlarge"><figure><img src="assets/samples/lip_46aa6879a4be9161_3280_2867_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_46aa6879a4be9161_3280_2867_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_46aa6879a4be9161_3280_2867_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">95.8% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_7dd9aff6549e4ad1_4280_3489" data-iou="95.7" title="Click to enlarge"><figure><img src="assets/samples/lip_7dd9aff6549e4ad1_4280_3489_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_7dd9aff6549e4ad1_4280_3489_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_7dd9aff6549e4ad1_4280_3489_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">95.7% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_100f8e9bc47b4835_3678_3024" data-iou="95.6" title="Click to enlarge"><figure><img src="assets/samples/lip_100f8e9bc47b4835_3678_3024_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_100f8e9bc47b4835_3678_3024_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_100f8e9bc47b4835_3678_3024_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">95.6% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_f76203deaa3a2e4c_5609_2906" data-iou="95.5" title="Click to enlarge"><figure><img src="assets/samples/lip_f76203deaa3a2e4c_5609_2906_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_f76203deaa3a2e4c_5609_2906_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_f76203deaa3a2e4c_5609_2906_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">95.5% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_50c2b0372b54b8cc_3378_3459" data-iou="95.4" title="Click to enlarge"><figure><img src="assets/samples/lip_50c2b0372b54b8cc_3378_3459_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_50c2b0372b54b8cc_3378_3459_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_50c2b0372b54b8cc_3378_3459_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">95.4% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_01dcac23f0fd7af4_1028_1392" data-iou="95.3" title="Click to enlarge"><figure><img src="assets/samples/lip_01dcac23f0fd7af4_1028_1392_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_01dcac23f0fd7af4_1028_1392_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_01dcac23f0fd7af4_1028_1392_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">95.3% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_a93828d8fb5caebb_3334_3531" data-iou="95.2" title="Click to enlarge"><figure><img src="assets/samples/lip_a93828d8fb5caebb_3334_3531_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_a93828d8fb5caebb_3334_3531_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_a93828d8fb5caebb_3334_3531_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">95.2% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_63e0b9b3a5a03235_4352_3430" data-iou="95.1" title="Click to enlarge"><figure><img src="assets/samples/lip_63e0b9b3a5a03235_4352_3430_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_63e0b9b3a5a03235_4352_3430_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_63e0b9b3a5a03235_4352_3430_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">95.1% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_cb949af3e830a195_3788_2338" data-iou="95.0" title="Click to enlarge"><figure><img src="assets/samples/lip_cb949af3e830a195_3788_2338_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_cb949af3e830a195_3788_2338_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_cb949af3e830a195_3788_2338_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">95.0% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_25c376675b8ea6ec_3519_2901" data-iou="94.9" title="Click to enlarge"><figure><img src="assets/samples/lip_25c376675b8ea6ec_3519_2901_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_25c376675b8ea6ec_3519_2901_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_25c376675b8ea6ec_3519_2901_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">94.9% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_c4bc547b9ef97cb6_3844_2868" data-iou="94.6" title="Click to enlarge"><figure><img src="assets/samples/lip_c4bc547b9ef97cb6_3844_2868_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_c4bc547b9ef97cb6_3844_2868_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_c4bc547b9ef97cb6_3844_2868_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">94.6% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_011bd41d360dae17_4012_3272" data-iou="94.1" title="Click to enlarge"><figure><img src="assets/samples/lip_011bd41d360dae17_4012_3272_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_011bd41d360dae17_4012_3272_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_011bd41d360dae17_4012_3272_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">94.1% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_59254e909c06c424_3662_2172" data-iou="93.7" title="Click to enlarge"><figure><img src="assets/samples/lip_59254e909c06c424_3662_2172_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_59254e909c06c424_3662_2172_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_59254e909c06c424_3662_2172_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">93.7% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_768b7fa147b9a14a_3559_2653" data-iou="93.1" title="Click to enlarge"><figure><img src="assets/samples/lip_768b7fa147b9a14a_3559_2653_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_768b7fa147b9a14a_3559_2653_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_768b7fa147b9a14a_3559_2653_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">93.1% <s>IoU</s></span></div></article><article class="samp"><button class="trip" type="button" data-stem="assets/samples/lip_c4a0643f0d31ae6b_3654_2845" data-iou="86.2" title="Click to enlarge"><figure><img src="assets/samples/lip_c4a0643f0d31ae6b_3654_2845_in.jpg" alt="Input photo" loading="lazy" decoding="async"><figcaption>Input</figcaption></figure><figure><img src="assets/samples/lip_c4a0643f0d31ae6b_3654_2845_gt.jpg" alt="Human annotation" loading="lazy" decoding="async"><figcaption>GT Human Annotation</figcaption></figure><figure><img src="assets/samples/lip_c4a0643f0d31ae6b_3654_2845_pr.jpg" alt="Model prediction" loading="lazy" decoding="async"><figcaption>Model Prediction</figcaption></figure></button><div class="meta"><span class="sc">86.2% <s>IoU</s></span></div></article></div><button class="more" data-gal="lip">Show more samples</button>
+    </div>
+
+    <dialog class="lb" id="lb">
+      <div class="inner">
+        <div class="trip">
+          <figure><img id="lb-in" alt="Input photo"><figcaption>Input</figcaption></figure>
+          <figure><img id="lb-gt" alt="Human annotation"><figcaption>GT Human annotation</figcaption></figure>
+          <figure><img id="lb-pr" alt="Model prediction"><figcaption>Model prediction</figcaption></figure>
+        </div>
+        <div class="bar">
+          <span class="sc" id="lb-iou"></span>
+          <button class="x" type="button" id="lb-x">Close</button>
+        </div>
+      </div>
+    </dialog>
+  </div>
+</section>
+
+<script>
+(function(){
+  // theme toggle: stamps data-theme on <html>, which wins over the OS preference both ways
+  var root=document.documentElement, btn=document.getElementById('tw');
+  function isDark(){return root.dataset.theme==='dark'||
+    (!root.dataset.theme&&matchMedia('(prefers-color-scheme:dark)').matches);}
+  function label(){btn.textContent=isDark()?'Light':'Dark';}
+  btn.addEventListener('click',function(){root.dataset.theme=isDark()?'light':'dark';label();});
+  label();
+
+  document.querySelectorAll('.tabs button').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('.tabs button').forEach(function(o){o.setAttribute('aria-selected', o===b);});
+      document.querySelectorAll('[data-panel]').forEach(function(p){p.hidden = p.dataset.panel !== b.dataset.tab;});
+    });
+  });
+
+  // progressive gallery: keep the DOM light until the reader asks for more
+  document.querySelectorAll('.gal').forEach(function(g){
+    var cards=[].slice.call(g.children),
+        more=document.querySelector('.more[data-gal="'+g.id.slice(4)+'"]');
+    function render(){
+      var n=+g.dataset.shown;
+      cards.forEach(function(c,i){c.hidden = i>=n;});
+      if(n>=cards.length) more.hidden=true;
+    }
+    more.addEventListener('click',function(){
+      g.dataset.shown = Math.min(cards.length, +g.dataset.shown + 12); render();});
+    render();
+  });
+
+  // click a sample to see the three panels full size
+  var lb=document.getElementById('lb');
+  if(lb){
+    document.addEventListener('click',function(e){
+      var t=e.target.closest('.trip[data-stem]'); if(!t) return;
+      document.getElementById('lb-in').src=t.dataset.stem+'_in.jpg';
+      document.getElementById('lb-gt').src=t.dataset.stem+'_gt.jpg';
+      document.getElementById('lb-pr').src=t.dataset.stem+'_pr.jpg';
+      document.getElementById('lb-iou').textContent=t.dataset.iou+'% IoU against the human annotation';
+      lb.showModal();
+    });
+    document.getElementById('lb-x').addEventListener('click',function(){lb.close();});
+    lb.addEventListener('click',function(e){if(e.target===lb) lb.close();});
+  }
+})();
+</script>
+</body>
+</html>
