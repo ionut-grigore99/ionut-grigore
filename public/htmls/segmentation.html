@@ -54,7 +54,15 @@ nav a:hover{background:var(--surface-2);color:var(--ink)}
   font-size:.8125rem;padding:6px 12px;border-radius:8px;cursor:pointer;flex:none}
 .theme:hover{background:var(--surface-2);color:var(--ink)}
 /* the in-page nav would stack into a tall column on a phone; the page reads top-to-bottom anyway */
-@media (max-width:880px){nav{display:none}}
+/* Narrow screens: the links would wrap into a tall stack, so keep them on one line and let that
+   line scroll sideways. The scrollbar itself is hidden - on a phone you swipe it. */
+@media (max-width:880px){
+  .top{gap:10px}
+  nav{flex:1 1 auto;min-width:0;flex-wrap:nowrap;overflow-x:auto;
+    scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch}
+  nav::-webkit-scrollbar{display:none}
+  nav a{white-space:nowrap;font-size:.8125rem;padding:6px 8px}
+}
 
 .hero{padding:64px 0 56px}
 .eyebrow{font-size:.75rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
