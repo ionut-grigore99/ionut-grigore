@@ -238,6 +238,41 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.8125em;
   background:var(--surface-2);padding:.15em .4em;border-radius:5px}
 footer{border-top:1px solid var(--hair);padding:32px 0 48px;color:var(--muted);font-size:.8125rem}
 @media print{nav,.theme,.tabs,.more{display:none}.samp,.card,.tile{break-inside:avoid}}
+
+/* ---------- phones ----------
+   Everything above already reflows (the grids are all auto-fit/minmax). What a narrow screen
+   additionally needs is room: less chrome around the content, and tables that wrap their label
+   column instead of forcing a horizontal scroll inside .tscroll. Kept entirely inside media
+   queries so the desktop layout is untouched. */
+@media (max-width:700px){
+  /* a figure that is a wide strip of panels shrinks past legibility on a phone; let it scroll
+     in place instead, the way the architecture diagrams already do */
+  figure.plate.wide{overflow-x:auto}
+  figure.plate.wide img{min-width:620px}
+}
+@media (max-width:560px){
+  .wrap{padding:0 16px}
+  section{padding:40px 0}
+  .hero{padding:40px 0 36px}
+  .shead{margin-bottom:24px}
+  .card{padding:18px}
+  .grid{gap:12px}
+
+  /* the speed table is the one that does not fit: let its label column wrap and trim the
+     cell padding, so it reads as a table rather than as clipped content */
+  th,td{padding:8px 9px;font-size:.8125rem}
+  th:first-child,td:first-child{white-space:normal}
+  td small,th small{display:block;font-size:.75rem}
+
+  .tile{padding:16px 18px}
+  .tile .v{font-size:1.75rem}
+  .bars{gap:3px 9px;font-size:.75rem}
+  .bars .cnt{font-size:.6875rem}
+  .loss .math{font-size:.875rem;padding:7px 9px}
+  .gbar{gap:8px}
+  .gal{gap:14px}
+  .samp .meta{padding:9px 11px}
+}
 </style>
 </head>
 <body>
@@ -333,7 +368,7 @@ footer{border-top:1px solid var(--hair);padding:32px 0 48px;color:var(--muted);f
     </div>
     <h5 class="block" style="margin-top:28px">What the pre-training already gives us, before any
       training of ours</h5>
-    <figure class="plate">
+    <figure class="plate wide">
       <img src="assets/encoder_features.jpg"
            alt="Top row: five close-up photos of different mouths. Bottom row: for each one, four flat colour regions covering the mouth — the same four regions appear in the same arrangement in every photo, produced by clustering the pre-trained encoder's output with no labels and no training.">
     </figure>
@@ -361,7 +396,7 @@ footer{border-top:1px solid var(--hair);padding:32px 0 48px;color:var(--muted);f
             <thead><tr><th>Variant</th><th>Parameters</th><th>Weights</th></tr></thead>
             <tbody>
               <tr class="pick"><td><b>ViT-S/14</b> <span class="tag">used</span></td>
-                <td class="on">21 M</td><td class="on">84 MB</td></tr>
+                <td class="on">21 M</td><td class="on">~84 MB</td></tr>
               <tr><td>ViT-B/14</td><td>86 M</td><td>~330 MB</td></tr>
               <tr><td>ViT-L/14</td><td>300 M</td><td>~1.1 GB</td></tr>
             </tbody>
@@ -376,9 +411,9 @@ footer{border-top:1px solid var(--hair);padding:32px 0 48px;color:var(--muted);f
             <thead><tr><th>Variant</th><th>Parameters</th><th>Weights</th></tr></thead>
             <tbody>
               <tr class="pick"><td><b>ViT-S/16</b> <span class="tag">chosen</span></td>
-                <td class="on">21 M</td><td class="on">83 MB</td></tr>
-              <tr><td>ViT-S+/16</td><td>29 M</td><td>110 MB</td></tr>
-              <tr><td>ViT-B/16</td><td>86 M</td><td>327 MB</td></tr>
+                <td class="on">21 M</td><td class="on">~83 MB</td></tr>
+              <tr><td>ViT-S+/16</td><td>29 M</td><td>~110 MB</td></tr>
+              <tr><td>ViT-B/16</td><td>86 M</td><td>~327 MB</td></tr>
               <tr><td>ViT-L/16</td><td>300 M</td><td>~1.2 GB</td></tr>
             </tbody>
           </table>
