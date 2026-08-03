@@ -36,6 +36,7 @@ export const experiences: ExperienceItem[] = [
       { title: "Teeth and Inner Lip Segmentation Report", href: "https://ionut-grigore99.github.io/ionut-grigore/htmls/segmentation.html" },
       { title: "FLUX.2 Inpainting Report (Challenging Cases)", href: "https://ionut-grigore99.github.io/ionut-grigore/htmls/flux2_inpaint_inference_report_bad_cases.html" },
       { title: "FLUX.2 Inpainting Report (Test Set Evaluation)", href: "https://ionut-grigore99.github.io/ionut-grigore/htmls/flux2_evaluation_report.html" },
+      { title: "Paint-by-Example Inpainting Report (Test Set Evaluation)", href: "https://ionut-grigore99.github.io/ionut-grigore/htmls/paint_by_example_evaluation_report.html" },
     ],
   },
   {
