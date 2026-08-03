@@ -18,6 +18,8 @@ const navItems = [
   { label: 'Contact', href: '#contact' },
 ] as const;
 
+const cvUrl = 'https://drive.google.com/file/d/1YJhQLT5gyQhF3OEG7ELkgDVkDbn-f3yG/view?usp=drive_link';
+
 interface HeaderNavProps {
   name?: string;
 }
@@ -126,6 +128,15 @@ function HeaderNav({ name = 'Portfolio' }: HeaderNavProps): JSX.Element {
           >
             Teaching Materials
           </Link>
+          <Link
+            href={cvUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            underline="none"
+            className="flex items-center whitespace-nowrap !px-4 !text-base !font-semibold !bg-emerald-500/20 !text-emerald-100 hover:!bg-emerald-500/30"
+          >
+            CV
+          </Link>
         </nav>
       </div>
 
@@ -196,6 +207,16 @@ function HeaderNav({ name = 'Portfolio' }: HeaderNavProps): JSX.Element {
             className="!mx-2 !mb-1 !rounded-lg !bg-blue-500/20 !text-blue-100 hover:!bg-blue-500/30"
           >
             <ListItemText primary="Teaching Materials" />
+          </ListItemButton>
+          <ListItemButton
+            component="a"
+            href={cvUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setIsSidebarOpen(false)}
+            className="!mx-2 !mb-1 !rounded-lg !bg-emerald-500/20 !text-emerald-100 hover:!bg-emerald-500/30"
+          >
+            <ListItemText primary="CV" />
           </ListItemButton>
         </List>
       </Drawer>
