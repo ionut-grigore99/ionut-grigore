@@ -34,6 +34,7 @@ export const experiences: ExperienceItem[] = [
       { title: "3D-2D Alignment Report", href: "https://ionut-grigore99.github.io/ionut-grigore/htmls/alignment_report_dino_final.html" },
       { title: "Automatic White-Balance Correction Report", href: "https://ionut-grigore99.github.io/ionut-grigore/htmls/papers_comparison_white_balance.html" },
       { title: "Teeth and Inner Lip Segmentation Report", href: "https://ionut-grigore99.github.io/ionut-grigore/htmls/segmentation.html" },
+      { title: "FLUX.2 Inpainting Report (Challenging Cases)", href: "https://ionut-grigore99.github.io/ionut-grigore/htmls/flux2_inpaint_inference_report_bad_cases.html" },
     ],
   },
   {
