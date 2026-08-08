@@ -338,6 +338,26 @@ footer{border-top:1px solid var(--hair);padding:32px 0 48px;color:var(--muted);f
     and cuts a square crop around the mouth; that crop is <b>resized to 512×512 pixels</b>
     — the size both networks were trained at — and passed to each model independently. The masks
     come back at 512×512 and are scaled to the photo's original resolution.</figcaption>
+
+    <h3 class="sub" style="margin-top:44px">An alternative we tried: detect-then-segment</h3>
+    <p style="color:var(--ink-2);margin:0 0 18px">
+      Alongside the LoRA-finetuned DINOv3 above, we prototyped a two-stage
+      <b>detect-then-segment</b> pipeline. A
+      <a href="https://docs.ultralytics.com/models/yolo11/" target="_blank" rel="noopener">YOLO11-nano</a>
+      detector (Ultralytics) draws a bounding box around each tooth and assigns its tooth number;
+      every box is then passed as a prompt to <b>Light HQ-SAM</b>
+      (<a href="https://github.com/SysCV/sam-hq" target="_blank" rel="noopener">Light Segment Anything in High Quality</a>),
+      which returns the precise per-tooth mask.
+    </p>
+    <figure class="diagram">
+      <img src="assets/SAT.png"
+           alt="Detect-then-segment pipeline: YOLO11-nano localises each tooth with a numbered bounding box, and Light HQ-SAM turns each box, used as a prompt, into a precise per-tooth segmentation mask.">
+    </figure>
+    <figcaption>The detect-then-segment alternative: YOLO11-nano localises and numbers each
+    tooth, and Light HQ-SAM converts each box prompt into a fine per-tooth mask.</figcaption>
+    <div class="note" style="margin-top:18px"><b>Result.</b> The pipeline works end to end, but its
+    segmentation accuracy came in <b>below</b> the LoRA-finetuned DINOv3 — so DINOv3 remained our
+    production choice.</div>
   </div>
 </section>
 
